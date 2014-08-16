@@ -6,7 +6,7 @@
 	public class Console extends MovieClip
 	{
 		//Init Constants
-		var HELP_MESSAGE:String = "Some notable commands include\n/nick (changes your name)";
+		var HELP_MESSAGE:String = "Some notable commands include\n/nick (changes your name)\n/reconnect (resets your connection)";
 		var NICK:String = "";
 		
 		//Init Variables
@@ -55,7 +55,6 @@
 				if (s.length > 0)
 				{
 					record("<font color='#339900'>" + NICK + ": " + myInput.text + "</font>");
-					(parent as MovieClip).sendStr(NICK + ": " + myInput.text);
 					processCommand(myInput.text);
 				}
 				myInput.text = "";
@@ -71,6 +70,15 @@
 				case "/help": 
 					record(HELP_MESSAGE);
 					break;
+				case "/reconnect": 
+					(parent as MovieClip).reconnectMe();
+					break;
+				case "/reconnect-all": 
+					(parent as MovieClip).sendForceReconnect();
+					break;
+				case "/spawn-zombie":
+					(parent as MovieClip).createZombieFromMe();
+					break;
 				default: 
 					//record("<font color='#CC0000'>" + s + " is not a recognized command. Type HELP for a list of commands.</font>");
 					if (command.substring(0, 6) == "/nick ")
@@ -82,7 +90,7 @@
 							record(tNickChange);
 							(parent as MovieClip).sendStr(tNickChange);
 						}
-						else if (command.substring(6).length > 10)
+						else if (command.substring(6).length >= 10)
 						{
 							record("Pick a shorter name.");
 						}
@@ -95,7 +103,10 @@
 							record("Your name can't include spaces.");
 						}
 					}
-					break;
+					else
+					{
+						(parent as MovieClip).sendStr(NICK + ": " + command);
+					}
 			}
 		}
 		

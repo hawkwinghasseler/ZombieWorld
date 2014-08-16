@@ -5,7 +5,7 @@ package
 	
 	public class Bullet extends MovieClip
 	{
-		var MOVEMENT_SPEED:Number = 10;
+		var MOVEMENT_SPEED:Number = 30;
 		var MAX_DISTANCE:Number = 200;
 		var MAX_HEIGHT:Number = 440;
 		var MAX_WIDTH:Number = 480;
@@ -49,23 +49,31 @@ package
 				gotoAndStop("Lethal");
 			}
 			
-			//Hit test with all characters
+			//Hit test with appropriate elements
 			if (isLethal())
 			{
-				for each (var someP in(parent.parent.parent as MovieClip).getAllPlayers())
+				for each (var someE in(parent.parent.parent as MovieClip).getAllElements())
 				{
-					if (someP.hitTestObject(this))
+					if (someE[1].hitTestObject(this))
 					{
-						if (someP.getID() != immuneToPlayer)
+						if ((someE[0] == "Player" && someE[1].getID() != immuneToPlayer) || someE[0] == "Zombie")
 						{
 							//record("A Player was hit!");
-							someP.takeDamage();
+							someE[1].takeDamage(rotation);
 							removeMe();
-						} else {
+						}
+						else
+						{
 							//record("ID check: " + someP.getID() + " vs " + immuneToPlayer);
 						}
 					}
 				}
+			}
+			
+			if ((parent.parent.parent as MovieClip).getMap().hitTestPoint(x + (parent.parent.parent as MovieClip).getGWOffsets()[0],y + (parent.parent.parent as MovieClip).getGWOffsets()[1],true))
+			{
+				(parent.parent.parent as MovieClip).createBulletHole(x, y, rotation);
+				removeMe();
 			}
 			
 			//Remove after a certain distance or the Bullet exceeds constraints

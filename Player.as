@@ -10,13 +10,21 @@ package
 		var myName:String;
 		var tic:int;
 		var pHUI:PlayerHUI;
+		var isDisconnected:Boolean = false;
+		var bloodStep:int = 0;
+		var hitSize:int = 12;
 		
 		public function Player(myID_In:String, myName_In:String)
 		{
 			myID = myID_In;
-			myHealth = 3;
+			myHealth = 10;
 			myName = myName_In;
 			gotoAndStop("Alive");
+		}
+		
+		public function getHitSize()
+		{
+			return hitSize;
 		}
 		
 		public function changePosition(x_In:Number, y_In:Number, r_In:Number)
@@ -26,7 +34,7 @@ package
 			rotation = r_In;
 		}
 		
-		public function takeDamage()
+		public function takeDamage(impact_Angle:Number)
 		{
 			myHealth--;
 			checkForDeath();
@@ -67,27 +75,41 @@ package
 			}
 		}
 		
-		public function removeMe() {
+		public function removeMe()
+		{
 			(parent as MovieClip).removeChild(this);
 		}
 		
-		public function addPHUI(pHUI_In:PlayerHUI) {
+		public function addPHUI(pHUI_In:PlayerHUI)
+		{
 			pHUI = pHUI_In;
 		}
 		
-		public function getPHUI() {
+		public function getPHUI()
+		{
 			return pHUI;
 		}
 		
 		public function die()
 		{
 			//dead = true;
-			//gotoAndStop("Death");
+			//gotoAndStop("Dead");
 		}
 		
 		public function disconnected()
 		{
+			isDisconnected = true;
 			gotoAndStop("Disconnected");
+		}
+		
+		public function isConnected()
+		{
+			return !isDisconnected;
+		}
+		
+		public function getInfoArray()
+		{
+			return [];
 		}
 		
 		public function isAlive()

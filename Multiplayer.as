@@ -52,6 +52,11 @@ package
 			mConnection.sendObject({c: "Message", m: s});
 		}
 		
+		public function sendDisconnectOrder(s:String, id_In:String)
+		{
+			mConnection.sendObject({c: "DisconnectOrder", r: s, w: id_In});
+		}
+		
 		public function sendTic()
 		{
 			mConnection.sendObject({c: "AvailableTic"});
@@ -80,12 +85,27 @@ package
 		
 		public function sendNewUserQuery()
 		{
+			record("Sending a New User Query");
 			mConnection.sendObject({c: "NewUserQuery"});
 		}
 		
 		public function sendLoadingComplete()
 		{
 			mConnection.sendObject({c: "LoadingComplete"});
+		}
+		
+		public function sendForceReconnectOrder()
+		{
+			mConnection.sendObject({c: "ReconnectOrder"});
+		}
+		
+		public function sendElement(what:String, infoArray:Array)
+		{
+			//record("Sending " + what + ", [" + infoArray + "]");
+			if (what != "Player")
+			{
+				mConnection.sendObject({c: "Element", w: what, i: infoArray});
+			}
 		}
 		
 		public function handleConnect(theUser:UserObject):void
@@ -164,6 +184,26 @@ package
 					break;
 				case "LoadingComplete": 
 					(parent as MovieClip).loadingComplete();
+					break;
+				case "DisconnectOrder": 
+					if (theData.w == myUserID)
+					{
+						record("<font color='#990000'>" + "Disconnected!</font>\nReason: " + theData.r);
+						(parent as MovieClip).disconnectMe();
+					}
+					else
+					{
+						//record("A Disconnect Order was issued to " + theData.w);
+					}
+					break;
+				case "ReconnectOrder": 
+					(parent as MovieClip).forceReconnect(mPlayers[theUserId].getName());
+					break;
+				case "Element": 
+					if (theData.w == "Zombie")
+					{
+						(parent as MovieClip).createZombie(theData.i[0], theData.i[1], theData.i[2], theData.i[3]);
+					}
 					break;
 			}
 		}
