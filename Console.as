@@ -29,13 +29,13 @@
 		public function focusMe()
 		{
 			focused = true;
-			(parent as MovieClip).gw.fSheet.visible = true;
+			(parent as MovieClip).gwHUD.fSheet.visible = true;
 		}
 		
 		public function unfocusMe()
 		{
 			focused = false;
-			(parent as MovieClip).gw.fSheet.visible = false;
+			(parent as MovieClip).gwHUD.fSheet.visible = false;
 			stage.focus = null;
 		}
 		

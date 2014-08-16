@@ -1,9 +1,10 @@
 package
 {
-	import flash.display.MovieClip;
+	import flash.display.*;
 	import flash.events.*;
 	import flash.utils.*;
 	import flash.net.*
+	import flash.system.*;
 	
 	public class Engine extends MovieClip
 	{
@@ -11,25 +12,28 @@ package
 		var MOVEMENT_SPEED:Number = 2;
 		var GW_WIDTH:Number;
 		var GW_HEIGHT:Number;
-		var DISCONNECT_TIMER:Number = 10;
-		var REMOVE_TIMER:Number = 12;
+		var DISCONNECT_TIMER:Number = 3;
+		var REMOVE_TIMER:Number = 2 * DISCONNECT_TIMER;
 		var FIRE_RATE:Number = 30;
 		var FORCE_RECONNECT_TIMER:Number = 3;
 		var PLACE_DISTANCE:Number = 50;
 		var ZOMBIE_HEALTH:Number = 1;
+		var MAX_ELEMENTS:Number = 50;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
 		var gw:GameWindow = new GameWindow();
 		var cl:Console = new Console();
 		var listOfPlayers:Array = new Array();
-		var myTimer:Timer = new Timer(200);
+		var myTimer:Timer = new Timer(3000);
 		var sendForNUQ:Boolean = false;
 		var loadingCompleteMark:Boolean = false;
 		var shootCD:Number = 0;
 		var iAmDisconnected:Boolean = false;
 		var elementArray:Array = [];
 		var map:Map = new Map();
+		var holderArray:Array = new Array();
+		var gwHUD:GameWindowHUD = new GameWindowHUD();
 		
 		//Directional booleanss
 		var goingDown = false;
@@ -37,31 +41,53 @@ package
 		var goingLeft = false;
 		var goingRight = false;
 		
+		//Dev HUD stuff
+		var frames:int = 0;
+		var prevTimer:Number = 0;
+		var curTimer:Number = 0;
+		var curSent, curReceived, prevSent, prevReceived:int;
+		
 		public function Engine()
 		{
 			//Obligatory Engine prep
 			addChild(mp);
 			addChild(cl);
 			addChild(gw);
+			addChild(gwHUD);
+			
 			gw.mapHolder.addChild(map);
+			map.alpha = 0;
 			
 			gw.x = 312;
 			gw.y = 5;
+			gwHUD.x = gw.x;
+			gwHUD.y = gw.y;
 			
 			GW_WIDTH = gw.width;
 			GW_HEIGHT = gw.height;
+			
+			//Mask the Game Window
+			var gwMask:Shape = new Shape;
+			gwMask.graphics.beginFill(0xFF0000);
+			gwMask.graphics.drawRect(gw.x, gw.y, 480, 440);
+			gwMask.graphics.endFill();
+			addChild(gwMask);
+			gw.mask = gwMask;
 			
 			//Set up Player
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyUp);
 			addEventListener(Event.ENTER_FRAME, everyFrame);
 			gw.addEventListener(MouseEvent.CLICK, anywhereGw);
+			gwHUD.addEventListener(MouseEvent.CLICK, anywhereGw);
 			cl.addEventListener(MouseEvent.CLICK, anywhereCl);
 			
 			myTimer.addEventListener(TimerEvent.TIMER, timerListener);
 			myTimer.start();
-			gw.lSheet.visible = true;
-			gw.fSheet.visible = true;
+			gwHUD.lSheet.visible = true;
+			gwHUD.fSheet.visible = true;
+			
+			holderArray = [gw.UIHolder, gw.mapVisualTop, gw.playerHolder, gw.zombieHolder, gw.staticAniHolder, gw.mapHolder];
 		}
 		
 		public function addStaticAni(x_In:Number, y_In:Number, r_In:Number, type_In:String)
@@ -75,8 +101,8 @@ package
 		
 		public function disconnectMe()
 		{
-			gw.lSheet.visible = true;
-			gw.lSheet.myText.text = "Disconnected";
+			gwHUD.lSheet.visible = true;
+			gwHUD.lSheet.myText.text = "Disconnected";
 			record("Use the command /reconnect to reconnect");
 			iAmDisconnected = true;
 		}
@@ -113,21 +139,22 @@ package
 		
 		public function readyToSendNUQ()
 		{
-			gw.lSheet.visible = true;
-			gw.lSheet.myText.text = "Connecting...";
+			gwHUD.lSheet.visible = true;
+			gwHUD.lSheet.myText.text = "Connecting...";
 			sendForNUQ = true;
 		}
 		
 		public function timerListener(e:TimerEvent):void
 		{
 			listOfPlayers[0].incrementTic();
-			if (listOfPlayers[0].getTic() == 5 && sendForNUQ)
+			//gwHUD.myLag.text = "LAG CLOCK: " + listOfPlayers[0].getTic();
+			if (listOfPlayers[0].getTic() == 2 && sendForNUQ)
 			{
 				mp.sendNewUserQuery();
-				gw.lSheet.myText.text = "Requesting a peer for game state verification...";
+				gwHUD.lSheet.myText.text = "Requesting a peer for game state verification...";
 				sendForNUQ = false;
 			}
-			if (listOfPlayers[0].getTic() == 5 && !sendForNUQ && !loadingCompleteMark)
+			if (listOfPlayers[0].getTic() == 2 && !sendForNUQ && !loadingCompleteMark)
 			{
 				loadingComplete();
 			}
@@ -148,8 +175,8 @@ package
 			if (!loadingCompleteMark)
 			{
 				loadingCompleteMark = true;
-				record("Loading complete. Make yourself comfortable.");
-				gw.lSheet.visible = false;
+				record("Loading complete. Welcome to the game!");
+				gwHUD.lSheet.visible = false;
 			}
 		}
 		
@@ -163,9 +190,13 @@ package
 					//record("(Of " + listOfPlayers.length + ") " + someP.getTic() + " vs " + listOfPlayers[0].getTic());
 					if ((someP.getTic() + DISCONNECT_TIMER) < listOfPlayers[0].getTic())
 					{
+						if (someP.isConnected())
+						{
+							mp.sendAliveQuery();
+						}
 						someP.disconnected();
-						record("" + someP.getName() + " is lagging. " + "<font color='#0099FF'>" + "You are now synching their lag clock" + "</font>");
-						mp.sendTotalTic(listOfPlayers[0].getTic());
+							//record("" + someP.getName() + " is lagging. " + "<font color='#0099FF'>" + "Their lag clock is now being synced" + "</font>");
+							//mp.sendTicSync(listOfPlayers[0].getTic());
 					}
 					if ((someP.getTic() + REMOVE_TIMER) < listOfPlayers[0].getTic())
 					{
@@ -207,7 +238,7 @@ package
 		
 		public function anywhereGw(e:Event)
 		{
-			if (!cl.isFocused() && listOfPlayers[0].isAlive())
+			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected)
 			{
 				//Shoot
 				if (canShoot())
@@ -229,7 +260,17 @@ package
 		
 		public function setTic(n:Number)
 		{
-			listOfPlayers[0].setTic(n);
+			syncTics(n);
+		}
+		
+		public function syncTics(n:Number)
+		{
+			record("Syncing tics...");
+			for each (var someP in listOfPlayers)
+			{
+				someP.setInitTic(n);
+				someP.reconnected();
+			}
 		}
 		
 		public function anywhereCl(e:Event)
@@ -316,6 +357,11 @@ package
 			}
 		}
 		
+		public function getCamOffsets()
+		{
+			return [holderArray[0].x, holderArray[0].y];
+		}
+		
 		public function everyFrame(e:Event)
 		{
 			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected)
@@ -328,6 +374,39 @@ package
 			shootCD += 1;
 			
 			cl.updateCurrentConnections(mp.getCurrentConnections());
+			
+			//Update Memory
+			gwHUD.myMemory.text = "MEMORY: " + int(System.totalMemory / 1000) + " KB";
+			//Update FPS
+			frames += 1;
+			curTimer = getTimer();
+			curSent = int(mp.getSentObjectCounter());
+			curReceived = int(mp.getReceivedObjectCounter());
+			if (curTimer - prevTimer >= 1000)
+			{
+				//Update Every second
+				gwHUD.myFPS.text = "FPS: " + (Math.round(frames * 1000 / (curTimer - prevTimer)));
+				prevTimer = curTimer;
+				frames = 0;
+				
+				//Update SentCounter
+				var sentObjs:int = curSent-prevSent;
+				//Update ReceivedCounter
+				var receivedObjs:int = curReceived-prevReceived;
+				//Update Counter
+				gwHUD.mySentAndReceived.text = "NETWORK: " + sentObjs + ", " + receivedObjs;
+				
+				//Save stats for the next second
+				prevSent = int(mp.getSentObjectCounter());
+				prevReceived = int(mp.getReceivedObjectCounter());
+			}
+		}
+		
+		public function syncGW(x_In:Number, y_In:Number)
+		{
+			//Loop through Holders and snap them all to the X and Y coordinates
+			gw.x -= x_In;
+			gw.y -= y_In;
 		}
 		
 		public function getMap()
@@ -342,47 +421,19 @@ package
 			
 			if (goingUp)
 			{
-				if ((listOfPlayers[0].y - MOVEMENT_SPEED - (listOfPlayers[0].height / 2)) > 0)
-				{
-					speedY -= MOVEMENT_SPEED;
-				}
-				else
-				{
-					listOfPlayers[0].y = (listOfPlayers[0].height / 2);
-				}
+				speedY -= MOVEMENT_SPEED;
 			}
 			if (goingLeft)
 			{
-				if ((listOfPlayers[0].x - MOVEMENT_SPEED - (listOfPlayers[0].width / 2)) > 0)
-				{
-					speedX -= MOVEMENT_SPEED;
-				}
-				else
-				{
-					listOfPlayers[0].x = (listOfPlayers[0].width / 2);
-				}
+				speedX -= MOVEMENT_SPEED;
 			}
 			if (goingDown)
 			{
-				if ((listOfPlayers[0].y + MOVEMENT_SPEED + (listOfPlayers[0].height / 2)) < GW_HEIGHT)
-				{
-					speedY += MOVEMENT_SPEED;
-				}
-				else
-				{
-					listOfPlayers[0].y = GW_HEIGHT - (listOfPlayers[0].height / 2);
-				}
+				speedY += MOVEMENT_SPEED;
 			}
 			if (goingRight)
 			{
-				if ((listOfPlayers[0].x + MOVEMENT_SPEED + (listOfPlayers[0].width / 2)) < GW_WIDTH)
-				{
-					speedX += MOVEMENT_SPEED;
-				}
-				else
-				{
-					listOfPlayers[0].x = GW_WIDTH - (listOfPlayers[0].width / 2);
-				}
+				speedX += MOVEMENT_SPEED;
 			}
 			
 			var xHitSpace:Number = listOfPlayers[0].getHitSize();
@@ -398,6 +449,11 @@ package
 			{
 				yHitSpace *= -1;
 			}
+			
+			//xHitSpace += getCamOffsets()[0];
+			//yHitSpace += getCamOffsets()[1];
+			xHitSpace += holderArray[0].x;
+			yHitSpace += holderArray[0].y;
 			
 			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x + xHitSpace + speedX, listOfPlayers[0].y + gw.y, true))
 			{
@@ -415,15 +471,18 @@ package
 				{
 					listOfPlayers[0].x += speedX;
 					listOfPlayers[0].y += speedY;
+					syncGW(speedX, speedY);
 				}
 			}
 			else if (goingX)
 			{
 				listOfPlayers[0].x += speedX;
+				syncGW(speedX, 0);
 			}
 			else if (goingY)
 			{
 				listOfPlayers[0].y += speedY;
+				syncGW(0, speedY);
 			}
 			
 			mp.sendCharacterInfo(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
@@ -431,8 +490,8 @@ package
 		
 		public function updateRotation()
 		{
-			var dist_Y:Number = mouseY - listOfPlayers[0].y + gw.y;
-			var dist_X:Number = mouseX - listOfPlayers[0].x - gw.x;
+			var dist_Y:Number = mouseY - listOfPlayers[0].y - gw.y - getCamOffsets()[1];
+			var dist_X:Number = mouseX - listOfPlayers[0].x - gw.x - getCamOffsets()[0];
 			var angle:Number = Math.atan2(dist_Y, dist_X);
 			var degrees:Number = angle * 180 / Math.PI;
 			listOfPlayers[0].rotation = degrees + 90;
@@ -457,9 +516,9 @@ package
 				generated_playerHUI.setText(mp.getNameFromID(player_In.getID()));
 			}
 			gw.playerHolder.addChild(player_In);
-			gw.playerHolder.addChild(generated_playerHUI);
-			player_In.x = (gw.width / 2) - (player_In.width / 2);
-			player_In.y = (gw.height / 2) - (player_In.height / 2);
+			gw.UIHolder.addChild(generated_playerHUI);
+			player_In.x = (map.width / 2) - (player_In.width / 2);
+			player_In.y = (map.height / 2) - (player_In.height / 2);
 			
 			player_In.setInitTic(listOfPlayers[0].getTic());
 			
@@ -469,15 +528,22 @@ package
 		
 		public function createZombieFromMe()
 		{
-			var startX:Number = listOfPlayers[0].x;
-			var startY:Number = listOfPlayers[0].y;
-			var startR:Number = (Math.floor(Math.random() * 180));
-			
-			startX += (Math.cos(startR) * PLACE_DISTANCE);
-			startY += (Math.sin(startR) * PLACE_DISTANCE);
-			
-			mp.sendElement("Zombie", [startX, startY, startR, ZOMBIE_HEALTH]);
-			createZombie(startX, startY, startR, ZOMBIE_HEALTH);
+			if (elementArray.length < MAX_ELEMENTS)
+			{
+				var startX:Number = listOfPlayers[0].x;
+				var startY:Number = listOfPlayers[0].y;
+				var startR:Number = (Math.floor(Math.random() * 180));
+				
+				startX += (Math.cos(startR) * PLACE_DISTANCE);
+				startY += (Math.sin(startR) * PLACE_DISTANCE);
+				
+				mp.sendElement("Zombie", [startX, startY, startR, ZOMBIE_HEALTH]);
+				createZombie(startX, startY, startR, ZOMBIE_HEALTH);
+			}
+			else
+			{
+				record("There are too many elements (Max: " + MAX_ELEMENTS + ")");
+			}
 		}
 		
 		public function createZombie(x_In:Number, y_In:Number, r_In:Number, zHP_In:int)

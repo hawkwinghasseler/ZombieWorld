@@ -17,11 +17,20 @@ package
 		private var mMyName:String;
 		private var myUserID:String;
 		var currentPlayers:int = 0;
+		var receivedObjectCounter:int = 0;
 		
 		public function Multiplayer()
 		{
 			Logger.LEVEL = Logger.ALL;
 			initialize();
+		}
+		
+		public function getSentObjectCounter() {
+			return mConnection.getSentObjectCount();
+		}
+		
+		public function getReceivedObjectCounter() {
+			return receivedObjectCounter;
 		}
 		
 		public function getName()
@@ -54,7 +63,13 @@ package
 		
 		public function sendDisconnectOrder(s:String, id_In:String)
 		{
-			mConnection.sendObject({c: "DisconnectOrder", r: s, w: id_In});
+			//mConnection.sendObject({c: "DisconnectOrder", r: s, w: id_In});
+		}
+		
+		public function sendAliveQuery()
+		{
+			//Are you alive? (Sent when a character has lagged)
+			mConnection.sendObject({c: "AreYouAlive", w: myUserID});
 		}
 		
 		public function sendTic()
@@ -65,6 +80,12 @@ package
 		public function sendTotalTic(n:Number)
 		{
 			mConnection.sendObject({c: "TotalTic", t: n});
+		}
+		
+		public function sendTicSync(n:Number)
+		{
+			(parent as MovieClip).syncTics();
+			mConnection.sendObject({c: "TicSync", t: n});
 		}
 		
 		public function sendCharacterInfo(x_In:Number, y_In:Number, r_In:Number)
@@ -157,6 +178,7 @@ package
 		
 		public function handleGetObject(theUserId:String, theData:Object):void
 		{
+			receivedObjectCounter++;
 			var objectCategoryStr:String = theData.c;
 			switch (objectCategoryStr)
 			{
@@ -178,6 +200,11 @@ package
 					break;
 				case "TotalTic": 
 					setTic(theData.t);
+					break;
+				case "TicSync": 
+					record("Tic sync received (" + mPlayers[myUserID].getTics() + "/" + theData.t);
+					(parent as MovieClip).syncTics(theData.t);
+					break;
 				case "NewUserQuery": 
 					//record("New user query received");
 					(parent as MovieClip).newUserUpdate();
@@ -198,6 +225,17 @@ package
 					break;
 				case "ReconnectOrder": 
 					(parent as MovieClip).forceReconnect(mPlayers[theUserId].getName());
+					break;
+				case "AreYouAlive": 
+					//record("You're lagging");
+					//Get the question "Are you alive" aka YOU are lagging! Respond with "IAmAlive"
+					mConnection.sendObject({c: "IAmAlive"});
+					break;
+				case "IAmAlive": 
+					//Get "IAmAlive" response from a laggard, then send them the real tic count (to catch up)
+					//record("You should update everyone";
+					var trueTicCount:Number = mPlayers[myUserID].getTics();
+					sendTicSync(trueTicCount);
 					break;
 				case "Element": 
 					if (theData.w == "Zombie")

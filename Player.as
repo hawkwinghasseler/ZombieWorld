@@ -102,6 +102,11 @@ package
 			gotoAndStop("Disconnected");
 		}
 		
+		public function reconnected() {
+			isDisconnected = false;
+			gotoAndStop("Alive");
+		}
+		
 		public function isConnected()
 		{
 			return !isDisconnected;
