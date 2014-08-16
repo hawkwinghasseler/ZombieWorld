@@ -19,6 +19,7 @@ package
 		var PLACE_DISTANCE:Number = 50;
 		var ZOMBIE_HEALTH:Number = 1;
 		var MAX_ELEMENTS:Number = 50;
+		var PENETRATE_CHANCE:Number = 50;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -244,8 +245,10 @@ package
 				if (canShoot())
 				{
 					shootCD = 0;
-					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID());
-					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID());
+					var penetrates:Boolean = PENETRATE_CHANCE >= (Math.floor(Math.random() * 100));
+					
+					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
 					gw.playerHolder.addChild(b);
 					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
 				}
@@ -322,18 +325,22 @@ package
 			if (e.charCode == 119)
 			{
 				goingUp = true;
+				goingDown = false;
 			}
-			if (e.charCode == 97)
+			else if (e.charCode == 97)
 			{
 				goingLeft = true;
+				goingRight = false;
 			}
-			if (e.charCode == 115)
+			else if (e.charCode == 115)
 			{
 				goingDown = true;
+				goingUp = false;
 			}
-			if (e.charCode == 100)
+			else if (e.charCode == 100)
 			{
 				goingRight = true;
+				goingLeft = false;
 			}
 		}
 		
@@ -343,15 +350,15 @@ package
 			{
 				goingUp = false;
 			}
-			if (e.charCode == 97)
+			else if (e.charCode == 97)
 			{
 				goingLeft = false;
 			}
-			if (e.charCode == 115)
+			else if (e.charCode == 115)
 			{
 				goingDown = false;
 			}
-			if (e.charCode == 100)
+			else if (e.charCode == 100)
 			{
 				goingRight = false;
 			}
@@ -390,9 +397,9 @@ package
 				frames = 0;
 				
 				//Update SentCounter
-				var sentObjs:int = curSent-prevSent;
+				var sentObjs:int = curSent - prevSent;
 				//Update ReceivedCounter
-				var receivedObjs:int = curReceived-prevReceived;
+				var receivedObjs:int = curReceived - prevReceived;
 				//Update Counter
 				gwHUD.mySentAndReceived.text = "NETWORK: " + sentObjs + ", " + receivedObjs;
 				
@@ -555,10 +562,10 @@ package
 			z.checkForDeath();
 		}
 		
-		public function createBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String)
+		public function createBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, pen_In:Boolean)
 		{
 			//Shoot
-			var b:Bullet = new Bullet(x_In, y_In, r_In, immune_In);
+			var b:Bullet = new Bullet(x_In, y_In, r_In, immune_In, pen_In);
 			gw.playerHolder.addChild(b);
 			createMuzzleFlash(x_In, y_In, r_In);
 		}

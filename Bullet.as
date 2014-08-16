@@ -10,14 +10,16 @@ package
 		var MAX_HEIGHT:Number = 440;
 		var MAX_WIDTH:Number = 480;
 		var LETHAL_DISTANCE:Number = 1;
+		var PENETRATES:Boolean = false;
 		
 		var immuneToPlayer:String;
 		
-		public function Bullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String)
+		public function Bullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, PENETRATES_In:Boolean)
 		{
 			x = x_In;
 			y = y_In;
 			rotation = r_In;
+			PENETRATES = PENETRATES_In;
 			
 			immuneToPlayer = immune_In;
 			
@@ -58,9 +60,15 @@ package
 					{
 						if ((someE[0] == "Player" && someE[1].getID() != immuneToPlayer) || someE[0] == "Zombie")
 						{
-							//record("A Player was hit!");
 							someE[1].takeDamage(rotation);
-							removeMe();
+							if (PENETRATES)
+							{
+								PENETRATES = false;
+							}
+							else
+							{
+								removeMe();
+							}
 						}
 						else
 						{
@@ -70,7 +78,7 @@ package
 				}
 			}
 			
-			if ((parent.parent.parent as MovieClip).getMap().hitTestPoint(x + (parent.parent.parent as MovieClip).getGWOffsets()[0],y + (parent.parent.parent as MovieClip).getGWOffsets()[1],true))
+			if ((parent.parent.parent as MovieClip).getMap().hitTestPoint(x + (parent.parent.parent as MovieClip).getGWOffsets()[0], y + (parent.parent.parent as MovieClip).getGWOffsets()[1], true))
 			{
 				(parent.parent.parent as MovieClip).createBulletHole(x, y, rotation);
 				removeMe();

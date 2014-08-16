@@ -25,11 +25,13 @@ package
 			initialize();
 		}
 		
-		public function getSentObjectCounter() {
+		public function getSentObjectCounter()
+		{
 			return mConnection.getSentObjectCount();
 		}
 		
-		public function getReceivedObjectCounter() {
+		public function getReceivedObjectCounter()
+		{
 			return receivedObjectCounter;
 		}
 		
@@ -93,9 +95,9 @@ package
 			mConnection.sendObject({c: "ChangePosition", x: x_In, y: y_In, r: r_In});
 		}
 		
-		public function sendBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String)
+		public function sendBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, penetrates:Boolean)
 		{
-			mConnection.sendObject({c: "Bullet", x: x_In, y: y_In, r: r_In, immune: immune_In});
+			mConnection.sendObject({c: "Bullet", x: x_In, y: y_In, r: r_In, immune: immune_In, pen: penetrates});
 		}
 		
 		public function sendNameChange(s:String)
@@ -189,7 +191,7 @@ package
 					changePlayerPosition(theUserId, theData.x, theData.y, theData.r);
 					break;
 				case "Bullet": 
-					(parent as MovieClip).createBullet(theData.x, theData.y, theData.r, theData.immune);
+					(parent as MovieClip).createBullet(theData.x, theData.y, theData.r, theData.immune, theData.pen);
 					break;
 				case "NameChange": 
 					//record("Received a name change " + theData.n);
