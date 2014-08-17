@@ -97,11 +97,17 @@
 						(parent as MovieClip).setAccuracy(int(entry));
 						record("Accuracy set to " + int(entry));
 						break;
-					case "/get-weapon":
+					case "/print-weapon": 
 						(parent as MovieClip).printWeapon();
 						break;
-					case "/get-ammo":
+					case "/print-ammo": 
 						(parent as MovieClip).printAmmo();
+						break;
+					case "/set-weapon": 
+						(parent as MovieClip).swapWeapon(entry);
+						break;
+					case "/print-allweapons": 
+						(parent as MovieClip).printAllWeapons();
 						break;
 					case "/nick": 
 						if (entry.length < 10 && entry.length > 0 && entry.indexOf(" ") < 0)

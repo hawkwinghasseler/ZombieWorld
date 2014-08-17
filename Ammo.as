@@ -4,8 +4,8 @@ package
 	
 	public class Ammo extends MovieClip
 	{
-		var names:Array = [".45 Auto", "12 Gauge Shell"];
-		var amounts:Array = [40, 0];
+		var names:Array = [".45 Auto", "12 Gauge Shell", ".357"];
+		var amounts:Array = [100, 100, 100];
 		
 		public function Ammo()
 		{
@@ -25,8 +25,9 @@ package
 			}
 			else
 			{
+				var toSend:int = amounts[names.indexOf(s)];
 				amounts[names.indexOf(s)] = 0;
-				return amounts[names.indexOf(s)];
+				return toSend;
 			}
 		}
 		

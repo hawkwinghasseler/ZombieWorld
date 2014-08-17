@@ -74,12 +74,12 @@ package
 			addChild(cl);
 			addChild(gw);
 			addChild(gwHUD);
-			gw.addChild(cursor);
+			gwHUD.addChild(cursor);
 			cursor.addEventListener(Event.ENTER_FRAME, cursorFrame);
 			function cursorFrame(e:Event)
 			{
-				cursor.x = mouseX - gw.x;
-				cursor.y = mouseY - gw.y;
+				cursor.x = mouseX - gwHUD.x;
+				cursor.y = mouseY - gwHUD.y;
 				cursor.setSize(ACCURACY + accuracyOffset);
 			}
 			
@@ -134,6 +134,7 @@ package
 			gwHUD.fSheet.visible = true;
 			
 			reload();
+			swapWeapon("M1911");
 			
 			holderArray = [gw.UIHolder, gw.mapVisualTop, gw.playerHolder, gw.zombieHolder, gw.staticAniHolder, gw.mapHolder];
 		}
@@ -148,9 +149,24 @@ package
 			record("Current weapon: " + currentWeapon.getName());
 		}
 		
-		public function swapWeapons(s:String)
+		public function swapWeapon(s:String)
 		{
+			ammo.addAmmo(CURRENT_CLIP_CONTAINS, currentWeapon.getAmmoType());
+			CURRENT_CLIP_CONTAINS = 0;
+			
 			currentWeapon.swap(s);
+			
+			//Set Engine stats to the weapon (read: Load the weapon stats)
+			ACCURACY = currentWeapon.getAccuracy();
+			CLIP_SIZE = currentWeapon.getClipSize();
+			FIRE_RATE = currentWeapon.getFireRate();
+			AUTO_FIRE = currentWeapon.getAutoFire();
+			KICK = currentWeapon.getKick();
+			PENETRATE_CHANCE = currentWeapon.getPenetrationChance();
+			
+			printWeapon();
+			updatePlayerUI();
+			reload();
 		}
 		
 		public function iSay(s:String)
@@ -540,6 +556,11 @@ package
 			gwHUD.playerHUD.indic_Ammo.currentAmmo.htmlText = s + CURRENT_CLIP_CONTAINS + "</font>";
 			gwHUD.playerHUD.indic_Ammo.extraAmmo.text = ammo.getAmmo(currentWeapon.getAmmoType());
 			gwHUD.playerHUD.indic_Ammo.indic_Gun.text = currentWeapon.getName();
+		}
+		
+		public function printAllWeapons()
+		{
+			record(currentWeapon.easyPrint());
 		}
 		
 		public function keyUp(e:KeyboardEvent)
