@@ -2,9 +2,12 @@ package
 {
 	import flash.display.*;
 	import flash.events.*;
+	import flash.media.Sound;
+	import flash.ui.MouseCursor;
 	import flash.utils.*;
 	import flash.net.*
 	import flash.system.*;
+	import flash.ui.*;
 	
 	public class Engine extends MovieClip
 	{
@@ -14,13 +17,21 @@ package
 		var GW_HEIGHT:Number;
 		var DISCONNECT_TIMER:Number = 3;
 		var REMOVE_TIMER:Number = 2 * DISCONNECT_TIMER;
-		var FIRE_RATE:Number = 30;
+		var FIRE_RATE:Number = 10;
 		var FORCE_RECONNECT_TIMER:Number = 3;
 		var PLACE_DISTANCE:Number = 50;
 		var ZOMBIE_HEALTH:Number = 1;
 		var MAX_ELEMENTS:Number = 50;
-		var PENETRATE_CHANCE:Number = 50;
-		var AUTO_FIRE:Boolean = false;
+		var PENETRATE_CHANCE:Number = 0;
+		var AUTO_FIRE:Boolean = true;
+		var ACCURACY:Number = 5;
+		var ACCURACY_CHANGE_RUN:Number = .5;
+		var ACCURACY_CHANGE_STOP:Number = .75;
+		var ACCURACY_OFFSET_MAX:Number = 30;
+		var KICK:Number = 12;
+		var CLIP_SIZE:Number = 10;
+		var CURRENT_CLIP_CONTAINS:Number = 0;
+		var RELOAD_SPEED:Number = 10;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -37,6 +48,12 @@ package
 		var holderArray:Array = new Array();
 		var gwHUD:GameWindowHUD = new GameWindowHUD();
 		var activated:Boolean = true;
+		var currentWeapon:Weapon = new Weapon();
+		var ammo:Ammo = new Ammo();
+		var accuracyOffset:Number = 0;
+		var cursor:Cursor = new Cursor();
+		var reloadTimer:Timer = new Timer(100, RELOAD_SPEED);
+		var reloading:Boolean = false;
 		
 		//Directional booleanss
 		var goingDown = false;
@@ -57,9 +74,19 @@ package
 			addChild(cl);
 			addChild(gw);
 			addChild(gwHUD);
+			gw.addChild(cursor);
+			cursor.addEventListener(Event.ENTER_FRAME, cursorFrame);
+			function cursorFrame(e:Event)
+			{
+				cursor.x = mouseX - gw.x;
+				cursor.y = mouseY - gw.y;
+				cursor.setSize(ACCURACY + accuracyOffset);
+			}
 			
 			gw.mapHolder.addChild(map);
 			map.alpha = 0;
+			gwHUD.playerHUD.indic_Ammo.reloader.visible = false;
+			gwHUD.mouseEnabled = false;
 			
 			gw.x = 312;
 			gw.y = 5;
@@ -76,6 +103,18 @@ package
 			gwMask.graphics.endFill();
 			addChild(gwMask);
 			gw.mask = gwMask;
+			
+			//Show/Hide Mouse
+			gw.addEventListener(MouseEvent.MOUSE_OVER, gwMouseOver);
+			cl.addEventListener(MouseEvent.MOUSE_OVER, gwMouseOut);
+			function gwMouseOver(e:Event)
+			{
+				Mouse.hide();
+			}
+			function gwMouseOut(e:Event)
+			{
+				Mouse.show();
+			}
 			
 			//Set up Player
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
@@ -94,7 +133,24 @@ package
 			gwHUD.lSheet.visible = true;
 			gwHUD.fSheet.visible = true;
 			
+			reload();
+			
 			holderArray = [gw.UIHolder, gw.mapVisualTop, gw.playerHolder, gw.zombieHolder, gw.staticAniHolder, gw.mapHolder];
+		}
+		
+		public function printAmmo()
+		{
+			record(ammo.printEasy());
+		}
+		
+		public function printWeapon()
+		{
+			record("Current weapon: " + currentWeapon.getName());
+		}
+		
+		public function swapWeapons(s:String)
+		{
+			currentWeapon.swap(s);
 		}
 		
 		public function iSay(s:String)
@@ -119,6 +175,11 @@ package
 		public function setFireRate(n:Number)
 		{
 			FIRE_RATE = n;
+		}
+		
+		public function setAccuracy(n:Number)
+		{
+			ACCURACY = n;
 		}
 		
 		public function handlerActivate(e:Event)
@@ -180,7 +241,9 @@ package
 		
 		public function readyToSendNUQ()
 		{
-			gwHUD.lSheet.visible = true;
+			//Don't even remember what this is but it's an important method
+			//loading indicator is invisible here because one day it just started popping up for no reason, not sure why, don't care to find out
+			gwHUD.lSheet.visible = false;
 			gwHUD.lSheet.myText.text = "Connecting...";
 			sendForNUQ = true;
 		}
@@ -189,13 +252,13 @@ package
 		{
 			listOfPlayers[0].incrementTic();
 			//gwHUD.myLag.text = "LAG CLOCK: " + listOfPlayers[0].getTic();
-			if (listOfPlayers[0].getTic() == 2 && sendForNUQ)
+			if (listOfPlayers[0].getTic() == 1 && sendForNUQ)
 			{
 				mp.sendNewUserQuery();
 				gwHUD.lSheet.myText.text = "Requesting a peer for game state verification...";
 				sendForNUQ = false;
 			}
-			if (listOfPlayers[0].getTic() == 2 && !sendForNUQ && !loadingCompleteMark)
+			if (listOfPlayers[0].getTic() == 1 && !sendForNUQ && !loadingCompleteMark)
 			{
 				loadingComplete();
 			}
@@ -281,16 +344,22 @@ package
 		{
 			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected && !AUTO_FIRE)
 			{
-				//Shoot
+				//Shoot				
 				if (canShoot())
 				{
 					shootCD = 0;
 					var penetrates:Boolean = PENETRATE_CHANCE >= (Math.floor(Math.random() * 100));
+					var tAccuracy:Number = (Math.floor(Math.random() * (ACCURACY + accuracyOffset)) - ((ACCURACY + accuracyOffset) / 2));
 					
-					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+					if (accuracyOffset < ACCURACY_OFFSET_MAX)
+					{
+						accuracyOffset += KICK;
+					}
+					
+					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates);
 					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
 					gw.playerHolder.addChild(b);
-					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
+					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, b.rotation);
 				}
 			}
 			cl.unfocusMe();
@@ -312,11 +381,17 @@ package
 			{
 				shootCD = 0;
 				var penetrates:Boolean = PENETRATE_CHANCE >= (Math.floor(Math.random() * 100));
+				var tAccuracy:Number = (Math.floor(Math.random() * (ACCURACY + accuracyOffset)) - ((ACCURACY + accuracyOffset) / 2));
 				
-				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+				if (accuracyOffset < ACCURACY_OFFSET_MAX)
+				{
+					accuracyOffset += KICK;
+				}
+				
+				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates);
 				mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
 				gw.playerHolder.addChild(b);
-				createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
+				createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, b.rotation);
 			}
 		}
 		
@@ -327,7 +402,16 @@ package
 		
 		public function canShoot()
 		{
-			return shootCD >= FIRE_RATE;
+			if (CURRENT_CLIP_CONTAINS == 0)
+			{
+				return false;
+			}
+			else if (shootCD >= FIRE_RATE)
+			{
+				CURRENT_CLIP_CONTAINS--;
+				updatePlayerUI();
+				return true;
+			}
 		}
 		
 		public function setTic(n:Number)
@@ -411,6 +495,46 @@ package
 				goingRight = true;
 				goingLeft = false;
 			}
+			else if (e.charCode == 114)
+			{
+				reload();
+			}
+		}
+		
+		public function reload()
+		{
+			if (!reloading)
+			{
+				gwHUD.playerHUD.indic_Ammo.reloader.visible = true;
+				reloading = true;
+				reloadTimer.reset();
+				reloadTimer.start();
+				reloadTimer.addEventListener(TimerEvent.TIMER_COMPLETE, reloadComplete);
+				function reloadComplete(e:Event)
+				{
+					gwHUD.playerHUD.indic_Ammo.reloader.visible = false;
+					reloading = false;
+					CURRENT_CLIP_CONTAINS += ammo.takeAmmo(currentWeapon.getAmmoType(), (CLIP_SIZE - CURRENT_CLIP_CONTAINS));
+					
+					//Reset the accuracy offset
+					accuracyOffset = 0;
+					
+					//Update the PlayerUI
+					updatePlayerUI();
+					reloadTimer.removeEventListener(TimerEvent.TIMER_COMPLETE, reloadComplete);
+				}
+			}
+		}
+		
+		public function updatePlayerUI()
+		{
+			var s:String = "<font color='#FFFFFF'>";
+			if (CURRENT_CLIP_CONTAINS == 0) {
+				s = "<font color='#FF0000'>";
+			}
+			gwHUD.playerHUD.indic_Ammo.currentAmmo.htmlText = s + CURRENT_CLIP_CONTAINS + "</font>";
+			gwHUD.playerHUD.indic_Ammo.extraAmmo.text = ammo.getAmmo(currentWeapon.getAmmoType());
+			gwHUD.playerHUD.indic_Ammo.indic_Gun.text = currentWeapon.getName();
 		}
 		
 		public function keyUp(e:KeyboardEvent)
@@ -559,6 +683,26 @@ package
 			{
 				listOfPlayers[0].y += speedY;
 				syncGW(0, speedY);
+			}
+			
+			//Change the accuracy modifier if moving
+			if (speedX != 0 || speedY != 0)
+			{
+				if (accuracyOffset < ACCURACY_OFFSET_MAX)
+				{
+					accuracyOffset += ACCURACY_CHANGE_RUN;
+				}
+			}
+			else
+			{
+				if (accuracyOffset > 0)
+				{
+					accuracyOffset -= ACCURACY_CHANGE_STOP;
+				}
+				else
+				{
+					accuracyOffset = 0;
+				}
 			}
 			
 			mp.sendCharacterInfo(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);

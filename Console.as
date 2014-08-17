@@ -93,6 +93,16 @@
 						(parent as MovieClip).setFireRate(int(entry));
 						record("Fire rate set to " + int(entry));
 						break;
+					case "/set-accuracy": 
+						(parent as MovieClip).setAccuracy(int(entry));
+						record("Accuracy set to " + int(entry));
+						break;
+					case "/get-weapon":
+						(parent as MovieClip).printWeapon();
+						break;
+					case "/get-ammo":
+						(parent as MovieClip).printAmmo();
+						break;
 					case "/nick": 
 						if (entry.length < 10 && entry.length > 0 && entry.indexOf(" ") < 0)
 						{
