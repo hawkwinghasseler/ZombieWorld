@@ -9,7 +9,7 @@ package
 	public class Multiplayer extends MovieClip
 	{
 		private const SERVER:String = "rtmfp://p2p.rtmfp.net/";
-		private const DEVKEY:String = "05128451c1c88dc70e01d26c-90847af16dc9"; // TODO: add your Cirrus key here. You can get a key from here : http://labs.adobe.com/technologies/cirrus/
+		private const DEVKEY:String = "05128451c1c88dc70e01d26c-90847af16dc9";
 		private const SERV_KEY:String = SERVER + DEVKEY;
 		
 		private var mConnection:MultiUserSession;
@@ -186,6 +186,7 @@ package
 			{
 				case "Message": 
 					record("<font color='#000000'>" + theData.m + "</font");
+					say(theUserId, theData.m);
 					break;
 				case "ChangePosition": 
 					changePlayerPosition(theUserId, theData.x, theData.y, theData.r);
@@ -238,6 +239,7 @@ package
 					//record("You should update everyone";
 					var trueTicCount:Number = mPlayers[myUserID].getTics();
 					sendTicSync(trueTicCount);
+					(parent as MovieClip).syncTics();
 					break;
 				case "Element": 
 					if (theData.w == "Zombie")
@@ -261,6 +263,11 @@ package
 		public function changePlayerPosition(theUserId:String, x_In:Number, y_In:Number, r_In:Number)
 		{
 			mPlayers[theUserId].changePosition(x_In, y_In, r_In);
+		}
+		
+		public function say(theUserId:String, s:String)
+		{
+			mPlayers[theUserId].say(s.substring(s.indexOf(": ") + 2));
 		}
 		
 		public function changePlayerName(theUserId:String, n_In:String)

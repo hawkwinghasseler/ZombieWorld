@@ -20,6 +20,7 @@ package
 		var ZOMBIE_HEALTH:Number = 1;
 		var MAX_ELEMENTS:Number = 50;
 		var PENETRATE_CHANCE:Number = 50;
+		var AUTO_FIRE:Boolean = false;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -35,6 +36,7 @@ package
 		var map:Map = new Map();
 		var holderArray:Array = new Array();
 		var gwHUD:GameWindowHUD = new GameWindowHUD();
+		var activated:Boolean = true;
 		
 		//Directional booleanss
 		var goingDown = false;
@@ -78,8 +80,12 @@ package
 			//Set up Player
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyUp);
+			stage.addEventListener(Event.ACTIVATE, handlerActivate);
+			stage.addEventListener(Event.DEACTIVATE, handlerDeactivate);
 			addEventListener(Event.ENTER_FRAME, everyFrame);
 			gw.addEventListener(MouseEvent.CLICK, anywhereGw);
+			gw.addEventListener(MouseEvent.MOUSE_DOWN, anywhereGwDown);
+			addEventListener(MouseEvent.MOUSE_UP, anywhereUp);
 			gwHUD.addEventListener(MouseEvent.CLICK, anywhereGw);
 			cl.addEventListener(MouseEvent.CLICK, anywhereCl);
 			
@@ -89,6 +95,40 @@ package
 			gwHUD.fSheet.visible = true;
 			
 			holderArray = [gw.UIHolder, gw.mapVisualTop, gw.playerHolder, gw.zombieHolder, gw.staticAniHolder, gw.mapHolder];
+		}
+		
+		public function iSay(s:String)
+		{
+			listOfPlayers[0].say(s);
+		}
+		
+		public function toggleAutoFire()
+		{
+			if (AUTO_FIRE)
+			{
+				record("Automatic fire is OFF");
+				AUTO_FIRE = false;
+			}
+			else
+			{
+				AUTO_FIRE = true;
+				record("Automatic fire is ON");
+			}
+		}
+		
+		public function setFireRate(n:Number)
+		{
+			FIRE_RATE = n;
+		}
+		
+		public function handlerActivate(e:Event)
+		{
+			activated = true;
+		}
+		
+		public function handlerDeactivate(e:Event)
+		{
+			activated = false;
 		}
 		
 		public function addStaticAni(x_In:Number, y_In:Number, r_In:Number, type_In:String)
@@ -183,7 +223,7 @@ package
 		
 		public function checkDisconnects()
 		{
-			if (!iAmDisconnected)
+			if (!iAmDisconnected && activated)
 			{
 				for (var i:int = 0; i < listOfPlayers.length; i++)
 				{
@@ -239,7 +279,7 @@ package
 		
 		public function anywhereGw(e:Event)
 		{
-			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected)
+			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected && !AUTO_FIRE)
 			{
 				//Shoot
 				if (canShoot())
@@ -254,6 +294,35 @@ package
 				}
 			}
 			cl.unfocusMe();
+		}
+		
+		public function anywhereGwDown(e:Event)
+		{
+			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected && AUTO_FIRE)
+			{
+				addEventListener(Event.ENTER_FRAME, shootAutomatically);
+			}
+			cl.unfocusMe();
+		}
+		
+		function shootAutomatically(e:Event)
+		{
+			//Shoot
+			if (canShoot())
+			{
+				shootCD = 0;
+				var penetrates:Boolean = PENETRATE_CHANCE >= (Math.floor(Math.random() * 100));
+				
+				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+				mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+				gw.playerHolder.addChild(b);
+				createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
+			}
+		}
+		
+		public function anywhereUp(e:Event)
+		{
+			removeEventListener(Event.ENTER_FRAME, shootAutomatically);
 		}
 		
 		public function canShoot()
@@ -383,7 +452,7 @@ package
 			cl.updateCurrentConnections(mp.getCurrentConnections());
 			
 			//Update Memory
-			gwHUD.myMemory.text = "MEMORY: " + int(System.totalMemory / 1000) + " KB";
+			gwHUD.myMemory.text = "MEMORY: " + int(System.totalMemory / 1024) + " KB";
 			//Update FPS
 			frames += 1;
 			curTimer = getTimer();
@@ -462,12 +531,12 @@ package
 			xHitSpace += holderArray[0].x;
 			yHitSpace += holderArray[0].y;
 			
-			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x + xHitSpace + speedX, listOfPlayers[0].y + gw.y, true))
+			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x + xHitSpace + speedX, listOfPlayers[0].y + gw.y - yHitSpace, true))
 			{
 				goingX = true;
 			}
 			
-			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x, listOfPlayers[0].y + gw.y + yHitSpace + speedY, true))
+			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x - xHitSpace, listOfPlayers[0].y + gw.y + yHitSpace + speedY, true))
 			{
 				goingY = true;
 			}

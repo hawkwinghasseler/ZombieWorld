@@ -6,7 +6,7 @@
 	public class Console extends MovieClip
 	{
 		//Init Constants
-		var HELP_MESSAGE:String = "Some notable commands include\n/nick (changes your name)\n/reconnect (resets your connection)";
+		var HELP_MESSAGE:String = "Some notable commands include\n/nick (changes your name)\n/reconnect (resets your connection)\n/add-zombie (he won't hurt a fly, honest!)";
 		var NICK:String = "";
 		
 		//Init Variables
@@ -64,49 +64,65 @@
 		public function processCommand(s:String)
 		{
 			var command:String = s;
-			
-			switch (command.toLowerCase())
+			var entry:String = "";
+			if (s.indexOf("/") == 0)
 			{
-				case "/help": 
-					record(HELP_MESSAGE);
-					break;
-				case "/reconnect": 
-					(parent as MovieClip).reconnectMe();
-					break;
-				case "/reconnect-all": 
-					(parent as MovieClip).sendForceReconnect();
-					break;
-				case "/spawn-zombie":
-					(parent as MovieClip).createZombieFromMe();
-					break;
-				default: 
-					//record("<font color='#CC0000'>" + s + " is not a recognized command. Type HELP for a list of commands.</font>");
-					if (command.substring(0, 6) == "/nick ")
-					{
-						if (command.substring(6).length < 10 && command.substring(6).length > 0 && command.substring(6).indexOf(" ") < 0)
+				entry = s.substring(command.indexOf(" ") + 1);
+				if (s.indexOf(" ") >= 0)
+				{
+					command = s.substring(0, command.indexOf(" "));
+				}
+				switch (command.toLowerCase())
+				{
+					case "/help": 
+						record(HELP_MESSAGE);
+						break;
+					case "/reconnect": 
+						(parent as MovieClip).reconnectMe();
+						break;
+					case "/reconnect-all": 
+						(parent as MovieClip).sendForceReconnect();
+						break;
+					case "/add-zombie": 
+						(parent as MovieClip).createZombieFromMe();
+						break;
+					case "/toggle-autofire": 
+						(parent as MovieClip).toggleAutoFire();
+						break;
+					case "/set-firerate": 
+						(parent as MovieClip).setFireRate(int(entry));
+						record("Fire rate set to " + int(entry));
+						break;
+					case "/nick": 
+						if (entry.length < 10 && entry.length > 0 && entry.indexOf(" ") < 0)
 						{
-							var tNickChange:String = NICK + " has changed their name to " + command.substring(6);
-							setNick(command.substring(6));
+							var tNickChange:String = NICK + " has changed their name to " + entry;
+							setNick(entry);
 							record(tNickChange);
 							(parent as MovieClip).sendStr(tNickChange);
 						}
-						else if (command.substring(6).length >= 10)
+						else if (entry.length >= 10)
 						{
 							record("Pick a shorter name.");
 						}
-						else if (command.substring(6).length == 0)
+						else if (entry.length == 0)
 						{
 							record("Come on, I'm sure you can think of something.");
 						}
-						else if (command.substring(6).indexOf(" ") >= 0)
+						else if (entry.indexOf(" ") >= 0)
 						{
 							record("Your name can't include spaces.");
 						}
-					}
-					else
-					{
-						(parent as MovieClip).sendStr(NICK + ": " + command);
-					}
+						break;
+					default: 
+						record("<font color='#CC0000'>" + s + " is not a recognized command. Type HELP for a list of commands.</font>");
+						break;
+				}
+			}
+			else
+			{
+				(parent as MovieClip).sendStr(NICK + ": " + command);
+				(parent as MovieClip).iSay(command);
 			}
 		}
 		

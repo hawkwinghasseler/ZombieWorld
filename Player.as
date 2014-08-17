@@ -1,6 +1,8 @@
 package
 {
 	import flash.display.MovieClip;
+	import flash.utils.*;
+	import flash.events.*;
 	
 	public class Player extends MovieClip
 	{
@@ -32,6 +34,10 @@ package
 			x = x_In;
 			y = y_In;
 			rotation = r_In;
+		}
+		
+		public function say(s:String) {
+			pHUI.say(s);
 		}
 		
 		public function takeDamage(impact_Angle:Number)
@@ -102,7 +108,8 @@ package
 			gotoAndStop("Disconnected");
 		}
 		
-		public function reconnected() {
+		public function reconnected()
+		{
 			isDisconnected = false;
 			gotoAndStop("Alive");
 		}
@@ -116,7 +123,7 @@ package
 		{
 			return [];
 		}
-		
+
 		public function isAlive()
 		{
 			return !dead;
