@@ -402,6 +402,10 @@ package
 		
 		public function canShoot()
 		{
+			if (reloading)
+			{
+				return false;
+			}
 			if (CURRENT_CLIP_CONTAINS == 0)
 			{
 				return false;
@@ -503,7 +507,7 @@ package
 		
 		public function reload()
 		{
-			if (!reloading)
+			if (!reloading && CURRENT_CLIP_CONTAINS < CLIP_SIZE && ammo.getAmmo(currentWeapon.getAmmoType()) > 0)
 			{
 				gwHUD.playerHUD.indic_Ammo.reloader.visible = true;
 				reloading = true;
@@ -529,7 +533,8 @@ package
 		public function updatePlayerUI()
 		{
 			var s:String = "<font color='#FFFFFF'>";
-			if (CURRENT_CLIP_CONTAINS == 0) {
+			if (CURRENT_CLIP_CONTAINS == 0)
+			{
 				s = "<font color='#FF0000'>";
 			}
 			gwHUD.playerHUD.indic_Ammo.currentAmmo.htmlText = s + CURRENT_CLIP_CONTAINS + "</font>";
