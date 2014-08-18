@@ -95,9 +95,9 @@ package
 			mConnection.sendObject({c: "ChangePosition", x: x_In, y: y_In, r: r_In});
 		}
 		
-		public function sendBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, penetrates:Boolean)
+		public function sendBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, penetrates:Boolean, bulletDamage:Number)
 		{
-			mConnection.sendObject({c: "Bullet", x: x_In, y: y_In, r: r_In, immune: immune_In, pen: penetrates});
+			mConnection.sendObject({c: "Bullet", x: x_In, y: y_In, r: r_In, immune: immune_In, pen: penetrates, dmg: bulletDamage});
 		}
 		
 		public function sendNameChange(s:String)
@@ -192,7 +192,7 @@ package
 					changePlayerPosition(theUserId, theData.x, theData.y, theData.r);
 					break;
 				case "Bullet": 
-					(parent as MovieClip).createBullet(theData.x, theData.y, theData.r, theData.immune, theData.pen);
+					(parent as MovieClip).createBullet(theData.x, theData.y, theData.r, theData.immune, theData.pen, theData.dmg);
 					break;
 				case "NameChange": 
 					//record("Received a name change " + theData.n);

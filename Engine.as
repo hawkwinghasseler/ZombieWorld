@@ -20,7 +20,7 @@ package
 		var FIRE_RATE:Number = 10;
 		var FORCE_RECONNECT_TIMER:Number = 3;
 		var PLACE_DISTANCE:Number = 50;
-		var ZOMBIE_HEALTH:Number = 1;
+		var ZOMBIE_HEALTH:Number = 10;
 		var MAX_ELEMENTS:Number = 50;
 		var PENETRATE_CHANCE:Number = 0;
 		var AUTO_FIRE:Boolean = true;
@@ -32,6 +32,7 @@ package
 		var CLIP_SIZE:Number = 10;
 		var CURRENT_CLIP_CONTAINS:Number = 0;
 		var RELOAD_SPEED:Number = 10;
+		var BULLET_DAMAGE:Number = 1;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -109,10 +110,12 @@ package
 			cl.addEventListener(MouseEvent.MOUSE_OVER, gwMouseOut);
 			function gwMouseOver(e:Event)
 			{
+				cursor.visible = true;
 				Mouse.hide();
 			}
 			function gwMouseOut(e:Event)
 			{
+				cursor.visible = false;
 				Mouse.show();
 			}
 			
@@ -163,6 +166,9 @@ package
 			AUTO_FIRE = currentWeapon.getAutoFire();
 			KICK = currentWeapon.getKick();
 			PENETRATE_CHANCE = currentWeapon.getPenetrationChance();
+			RELOAD_SPEED = currentWeapon.getReloadTime();
+			reloadTimer = new Timer(100, RELOAD_SPEED);
+			BULLET_DAMAGE = currentWeapon.getDamage();
 			
 			printWeapon();
 			updatePlayerUI();
@@ -372,8 +378,8 @@ package
 						accuracyOffset += KICK;
 					}
 					
-					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates);
-					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
 					gw.playerHolder.addChild(b);
 					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, b.rotation);
 				}
@@ -404,8 +410,8 @@ package
 					accuracyOffset += KICK;
 				}
 				
-				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates);
-				mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates);
+				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+				mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
 				gw.playerHolder.addChild(b);
 				createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, b.rotation);
 			}
@@ -801,10 +807,10 @@ package
 			z.checkForDeath();
 		}
 		
-		public function createBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, pen_In:Boolean)
+		public function createBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, pen_In:Boolean, damage_In:Number)
 		{
 			//Shoot
-			var b:Bullet = new Bullet(x_In, y_In, r_In, immune_In, pen_In);
+			var b:Bullet = new Bullet(x_In, y_In, r_In, immune_In, pen_In, damage_In);
 			gw.playerHolder.addChild(b);
 			createMuzzleFlash(x_In, y_In, r_In);
 		}

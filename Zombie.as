@@ -90,10 +90,10 @@ package
 			}
 		}
 		
-		public function takeDamage(impact_Angle_In:Number)
+		public function takeDamage(impact_Angle_In:Number, damage_In:Number)
 		{
 			impact_Angle = impact_Angle_In;
-			health--;
+			health -= damage_In;
 			checkForDeath();
 		}
 		

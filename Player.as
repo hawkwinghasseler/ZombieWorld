@@ -36,13 +36,14 @@ package
 			rotation = r_In;
 		}
 		
-		public function say(s:String) {
+		public function say(s:String)
+		{
 			pHUI.say(s);
 		}
 		
-		public function takeDamage(impact_Angle:Number)
+		public function takeDamage(impact_Angle:Number, damage_In:Number)
 		{
-			myHealth--;
+			myHealth -= damage_In;
 			checkForDeath();
 		}
 		
@@ -123,7 +124,7 @@ package
 		{
 			return [];
 		}
-
+		
 		public function isAlive()
 		{
 			return !dead;

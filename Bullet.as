@@ -12,15 +12,17 @@ package
 		var MAX_WIDTH:Number = 480;
 		var LETHAL_DISTANCE:Number = 1;
 		var PENETRATES:Boolean = false;
+		var DAMAGE:Number = 1;
 		
 		var immuneToPlayer:String;
 		
-		public function Bullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, PENETRATES_In:Boolean)
+		public function Bullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, PENETRATES_In:Boolean, DAMAGE_In:Number)
 		{
 			x = x_In;
 			y = y_In;
 			rotation = r_In;
 			PENETRATES = PENETRATES_In;
+			DAMAGE = DAMAGE_In;
 			
 			immuneToPlayer = immune_In;
 			
@@ -61,7 +63,7 @@ package
 					{
 						if ((someE[0] == "Player" && someE[1].getID() != immuneToPlayer) || someE[0] == "Zombie")
 						{
-							someE[1].takeDamage(rotation);
+							someE[1].takeDamage(rotation, DAMAGE);
 							if (PENETRATES)
 							{
 								PENETRATES = false;

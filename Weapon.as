@@ -6,12 +6,14 @@ package
 	{
 		var names:Array = ["M1911", "UMP", "Shotgun", "Desert Eagle"];
 		var ammo:Array = [".45 Auto", ".45 Auto", "12 Gauge Shell", ".357"];
-		var accuracy:Array = [5, 30, 30, 8];
-		var kick:Array = [12, 10, 30, 25];
+		var accuracy:Array = [5, 20, 30, 8];
+		var kick:Array = [12, 22, 30, 25];
 		var clipSize:Array = [7, 25, 6, 9];
-		var fireRate:Array = [15, 15, 70, 40];
+		var fireRate:Array = [15, 10, 70, 40];
 		var autoFire:Array = [false, true, false, false];
 		var penetrationChance:Array = [10, 5, 70, 80];
+		var reloadTime:Array = [10, 30, 50, 10];
+		var damage:Array = [3, 3, 12, 15];
 		
 		//Pick a starting weapon
 		var currentWeapon:String = names[0];
@@ -64,13 +66,26 @@ package
 			return ammo[names.indexOf(currentWeapon)];
 		}
 		
-		public function getPenetrationChance() {
+		public function getPenetrationChance()
+		{
 			return penetrationChance[names.indexOf(currentWeapon)];
 		}
 		
-		public function easyPrint() {
+		public function getReloadTime()
+		{
+			return reloadTime[names.indexOf(currentWeapon)];
+		}
+		
+		public function getDamage()
+		{
+			return damage[names.indexOf(currentWeapon)];
+		}
+		
+		public function easyPrint()
+		{
 			var s:String = "Weapons/Ammo";
-			for each (var someS in names) {
+			for each (var someS in names)
+			{
 				s += "\n" + someS + "(" + ammo[names.indexOf(someS)] + ")";
 			}
 			return s;
