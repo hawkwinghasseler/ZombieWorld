@@ -15,11 +15,12 @@ package
 		var isDisconnected:Boolean = false;
 		var bloodStep:int = 0;
 		var hitSize:int = 12;
+		var maxHealth:int = 10;
 		
 		public function Player(myID_In:String, myName_In:String)
 		{
 			myID = myID_In;
-			myHealth = 10;
+			myHealth = maxHealth;
 			myName = myName_In;
 			gotoAndStop("Alive");
 		}
@@ -27,6 +28,16 @@ package
 		public function getHitSize()
 		{
 			return hitSize;
+		}
+		
+		public function setMaxHealth(n:int)
+		{
+			maxHealth = n;
+		}
+		
+		public function getMaxHealth()
+		{
+			return maxHealth;
 		}
 		
 		public function changePosition(x_In:Number, y_In:Number, r_In:Number)
@@ -44,6 +55,10 @@ package
 		public function takeDamage(impact_Angle:Number, damage_In:Number)
 		{
 			myHealth -= damage_In;
+			if ((parent.parent.parent as MovieClip).isPlayerID(myID))
+			{
+				(parent.parent.parent as MovieClip).updateHealthBar(myHealth);
+			}
 			checkForDeath();
 		}
 		
@@ -78,6 +93,10 @@ package
 			if (myHealth <= 0)
 			{
 				myHealth = 0;
+				if ((parent.parent.parent as MovieClip).isPlayerID(myID))
+				{
+					(parent.parent.parent as MovieClip).updateHealthBar(myHealth);
+				}
 				die();
 			}
 		}

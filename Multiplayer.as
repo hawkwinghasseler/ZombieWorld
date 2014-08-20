@@ -144,6 +144,7 @@ package
 			
 			(parent as MovieClip).changeMyName(mMyName);
 			(parent as MovieClip).setNick(mMyName);
+			(parent as MovieClip).iAmReady();
 		}
 		
 		public function getMyID()

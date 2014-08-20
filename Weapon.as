@@ -11,7 +11,7 @@ package
 		var clipSize:Array = [7, 25, 6, 9];
 		var fireRate:Array = [15, 10, 70, 40];
 		var autoFire:Array = [false, true, false, false];
-		var penetrationChance:Array = [10, 5, 70, 80];
+		var penetrationChance:Array = [0, 0, 70, 80];
 		var reloadTime:Array = [10, 30, 50, 10];
 		var damage:Array = [3, 3, 12, 15];
 		

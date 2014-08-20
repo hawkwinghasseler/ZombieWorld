@@ -2,6 +2,7 @@ package
 {
 	import flash.display.*;
 	import flash.events.*;
+	import flash.globalization.NumberFormatter;
 	import flash.media.Sound;
 	import flash.ui.MouseCursor;
 	import flash.utils.*;
@@ -33,6 +34,7 @@ package
 		var CURRENT_CLIP_CONTAINS:Number = 0;
 		var RELOAD_SPEED:Number = 10;
 		var BULLET_DAMAGE:Number = 1;
+		var PLAYER_HEALTH:Number = 20;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -140,6 +142,13 @@ package
 			swapWeapon("M1911");
 			
 			holderArray = [gw.UIHolder, gw.mapVisualTop, gw.playerHolder, gw.zombieHolder, gw.staticAniHolder, gw.mapHolder];
+		}
+		
+		public function iAmReady()
+		{
+			//listOfPlayers[0].setMaxHealth(PLAYER_HEALTH);
+			setHealthTotal(10);
+			updateHealthBar(10);
 		}
 		
 		public function printAmmo()
@@ -542,14 +551,21 @@ package
 					reloading = false;
 					CURRENT_CLIP_CONTAINS += ammo.takeAmmo(currentWeapon.getAmmoType(), (CLIP_SIZE - CURRENT_CLIP_CONTAINS));
 					
-					//Reset the accuracy offset
-					accuracyOffset = 0;
-					
 					//Update the PlayerUI
 					updatePlayerUI();
 					reloadTimer.removeEventListener(TimerEvent.TIMER_COMPLETE, reloadComplete);
 				}
 			}
+		}
+		
+		public function updateHealthBar(n:Number)
+		{
+			gwHUD.playerHUD.indic_Health.myBar.update(n);
+		}
+		
+		public function setHealthTotal(n:Number)
+		{
+			gwHUD.playerHUD.indic_Health.myBar.setTotal(n);
 		}
 		
 		public function updatePlayerUI()
