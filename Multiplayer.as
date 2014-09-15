@@ -131,6 +131,11 @@ package
 			}
 		}
 		
+		public function sendRemoveElement(id:Number) {
+			//record("Sending Removal request for " + id);
+			mConnection.sendObject({c: "RemoveElement", i:id});
+		}
+		
 		public function handleConnect(theUser:UserObject):void
 		{
 			record("Connection successful!\nYou are " + theUser.name);
@@ -247,6 +252,19 @@ package
 					{
 						(parent as MovieClip).createZombie(theData.i[0], theData.i[1], theData.i[2], theData.i[3]);
 					}
+					else if (theData.w == "Pickup")
+					{
+						//trace("Creating pickup " + theData.i[5]);
+						(parent as MovieClip).createPickup(theData.i[0], theData.i[1], theData.i[2], new InvItem(theData.i[3][0], theData.i[3][1], theData.i[3][2], theData.i[3][3], theData.i[3][4]), theData.i[4]);
+					}
+					else
+					{
+						record("Received an unrecognized object: " + theData.w);
+					}
+					break;
+				case "RemoveElement":
+					//record("Removing " + theData.i);
+					(parent as MovieClip).removeElementByID(theData.i);
 					break;
 			}
 		}

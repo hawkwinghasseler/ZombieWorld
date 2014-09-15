@@ -26,6 +26,8 @@ package
 		var PENETRATE_CHANCE:Number = 0;
 		var AUTO_FIRE:Boolean = true;
 		var ACCURACY:Number = 5;
+		
+		
 		var ACCURACY_CHANGE_RUN:Number = .5;
 		var ACCURACY_CHANGE_STOP:Number = .75;
 		var ACCURACY_OFFSET_MAX:Number = 30;
@@ -34,7 +36,10 @@ package
 		var CURRENT_CLIP_CONTAINS:Number = 0;
 		var RELOAD_SPEED:Number = 10;
 		var BULLET_DAMAGE:Number = 1;
-		var PLAYER_HEALTH:Number = 20;
+		var PLAYER_HEALTH:Number = 100;
+		var INVENTORY_CATEGORY:String = "Weapons";
+		var PICKUP_RANGE:Number = 50;
+		var LIST_OF_SPREAD_WEAPONS:Array = ["Shotgun"];
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -57,6 +62,8 @@ package
 		var cursor:Cursor = new Cursor();
 		var reloadTimer:Timer = new Timer(100, RELOAD_SPEED);
 		var reloading:Boolean = false;
+		var inventory:Inventory = new Inventory();
+		var pickingUp:Boolean = false;
 		
 		//Directional booleanss
 		var goingDown = false;
@@ -77,7 +84,10 @@ package
 			addChild(cl);
 			addChild(gw);
 			addChild(gwHUD);
+			addChild(inventory);
 			gwHUD.addChild(cursor);
+			cursor.mouseEnabled = false;
+			cursor.mouseChildren = false;
 			cursor.addEventListener(Event.ENTER_FRAME, cursorFrame);
 			function cursorFrame(e:Event)
 			{
@@ -93,6 +103,7 @@ package
 			
 			gw.x = 312;
 			gw.y = 5;
+			
 			gwHUD.x = gw.x;
 			gwHUD.y = gw.y;
 			
@@ -106,10 +117,11 @@ package
 			gwMask.graphics.endFill();
 			addChild(gwMask);
 			gw.mask = gwMask;
+			cursor.gotoAndStop("Target");
 			
 			//Show/Hide Mouse
-			gw.addEventListener(MouseEvent.MOUSE_OVER, gwMouseOver);
-			cl.addEventListener(MouseEvent.MOUSE_OVER, gwMouseOut);
+			gwHUD.playerHUD.mouseField.addEventListener(MouseEvent.MOUSE_OVER, gwMouseOver);
+			gwHUD.playerHUD.mouseField.addEventListener(MouseEvent.MOUSE_OUT, gwMouseOut);
 			function gwMouseOver(e:Event)
 			{
 				cursor.visible = true;
@@ -121,6 +133,18 @@ package
 				Mouse.show();
 			}
 			
+			//Set up Inventory Window
+			hideInventory();
+			gwHUD.playerHUD.btnInventory.addEventListener(MouseEvent.CLICK, btnInvClick);
+			gwHUD.playerHUD.inventory.btnClose.addEventListener(MouseEvent.CLICK, btnInvClose);
+			gwHUD.playerHUD.btnInventory.gotoAndStop("Inventory");
+			
+			//Set up Chat Window
+			hideChat();
+			gwHUD.playerHUD.btnChat.addEventListener(MouseEvent.CLICK, btnChatClick);
+			gwHUD.playerHUD.chat.btnClose.addEventListener(MouseEvent.CLICK, btnChatclose);
+			gwHUD.playerHUD.btnChat.gotoAndStop("Chat");
+			
 			//Set up Player
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyUp);
@@ -128,7 +152,7 @@ package
 			stage.addEventListener(Event.DEACTIVATE, handlerDeactivate);
 			addEventListener(Event.ENTER_FRAME, everyFrame);
 			gw.addEventListener(MouseEvent.CLICK, anywhereGw);
-			gw.addEventListener(MouseEvent.MOUSE_DOWN, anywhereGwDown);
+			gwHUD.playerHUD.mouseField.addEventListener(MouseEvent.MOUSE_DOWN, anywhereGwDown);
 			addEventListener(MouseEvent.MOUSE_UP, anywhereUp);
 			gwHUD.addEventListener(MouseEvent.CLICK, anywhereGw);
 			cl.addEventListener(MouseEvent.CLICK, anywhereCl);
@@ -144,11 +168,82 @@ package
 			holderArray = [gw.UIHolder, gw.mapVisualTop, gw.playerHolder, gw.zombieHolder, gw.staticAniHolder, gw.mapHolder];
 		}
 		
+		public function updateVisualInventory(a:Array)
+		{
+			gwHUD.playerHUD.inventory.itemText.htmlText = "";
+			for each (var e in a)
+			{
+				gwHUD.playerHUD.inventory.itemText.htmlText += e.getName() + " (" + e.getQuantity() + ")\n";
+			}
+		}
+		
+		public function chatlogRecord(s:String)
+		{
+			gwHUD.playerHUD.chat.myText.htmlText += s;
+			gwHUD.playerHUD.chat.myText.scrollV = gwHUD.playerHUD.chat.myText.maxScrollV;
+			gwHUD.playerHUD.chat.scroller.update();
+		}
+		
+		public function btnInvClick(e:Event)
+		{
+			showInventory();
+		}
+		
+		public function btnChatClick(e:Event)
+		{
+			showChat();
+		}
+		
+		public function btnInvClose(e:Event)
+		{
+			hideInventory();
+		}
+		
+		public function btnChatclose(e:Event)
+		{
+			hideChat();
+		}
+		
 		public function iAmReady()
 		{
 			//listOfPlayers[0].setMaxHealth(PLAYER_HEALTH);
-			setHealthTotal(10);
-			updateHealthBar(10);
+			setHealthTotal(PLAYER_HEALTH);
+			updateHealthBar(PLAYER_HEALTH);
+			inventory.consolidateInventory();
+			
+			//Snap Character to a spawn point
+			listOfPlayers[0].x = gw.mapVisualTop.spawn.x;
+			listOfPlayers[0].y = gw.mapVisualTop.spawn.y;
+			
+			//Snap GW to Character's X and Y
+			gw.x = gwHUD.x - (listOfPlayers[0].x - (gwHUD.width / 2)) - 25;
+			gw.y = gwHUD.y - (listOfPlayers[0].y - (gwHUD.height / 2)) - 150;
+		}
+		
+		public function showInventory()
+		{
+			gwHUD.playerHUD.btnInventory.clickField.gotoAndStop("Pressed");
+			gwHUD.playerHUD.inventory.visible = true;
+			hideChat();
+		}
+		
+		public function hideInventory()
+		{
+			gwHUD.playerHUD.btnInventory.clickField.gotoAndStop("Unpressed");
+			gwHUD.playerHUD.inventory.visible = false;
+		}
+		
+		public function showChat()
+		{
+			gwHUD.playerHUD.btnChat.clickField.gotoAndStop("Pressed");
+			gwHUD.playerHUD.chat.visible = true;
+			hideInventory();
+		}
+		
+		public function hideChat()
+		{
+			gwHUD.playerHUD.btnChat.clickField.gotoAndStop("Unpressed");
+			gwHUD.playerHUD.chat.visible = false;
 		}
 		
 		public function printAmmo()
@@ -163,7 +258,11 @@ package
 		
 		public function swapWeapon(s:String)
 		{
-			ammo.addAmmo(CURRENT_CLIP_CONTAINS, currentWeapon.getAmmoType());
+			if (CURRENT_CLIP_CONTAINS > 0)
+			{
+				ammo.addAmmo(CURRENT_CLIP_CONTAINS, currentWeapon.getAmmoType());
+				inventory.add(new InvItem("Ammo", currentWeapon.getAmmoType(), 0, 100, CURRENT_CLIP_CONTAINS));
+			}
 			CURRENT_CLIP_CONTAINS = 0;
 			
 			currentWeapon.swap(s);
@@ -350,6 +449,7 @@ package
 		
 		public function garbageCollectElementArray()
 		{
+			//record("Garbage Collecting Element Array\nBefore: [" + elementArray + "]");
 			for (var i:int; i < elementArray.length; i++)
 			{
 				if (elementArray[i][0] == "Player")
@@ -368,12 +468,47 @@ package
 						elementArray.splice(i, 1);
 					}
 				}
+				if (elementArray[i][0] == "Pickup")
+				{
+					//Pickup
+					if (elementArray[i][1].isPickedUp())
+					{
+						elementArray[i][1].removeMe();
+						elementArray.splice(i, 1);
+					}
+				}
 			}
+			//record("After: [" + elementArray + "]");
 		}
 		
 		public function anywhereGw(e:Event)
 		{
-			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected && !AUTO_FIRE)
+			if (pickingUp)
+			{
+				var pickedUp:Boolean = false;
+				for each (var p in getPickupsNearMe())
+				{
+					if (p[1].hitTestPoint(mouseX, mouseY))
+					{
+						if (!pickedUp)
+						{
+							pickedUp = true;
+							mp.sendRemoveElement(p[1].getGID());
+							//trace("-----------------------\nINVE Adding type " + p[1].getItem().getName());
+							inventory.add(p[1].getItem());
+							if (p[1].getItem().getCategory() == "Ammo")
+							{
+								//trace("AMMO Adding type " + p[1].getItem().getName());
+								ammo.addAmmo(p[1].getItem().getQuantity(), p[1].getItem().getName());
+							}
+							p[1].pickUp();
+							garbageCollectElementArray();
+							updatePlayerUI();
+						}
+					}
+				}
+			}
+			else if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected && !AUTO_FIRE)
 			{
 				//Shoot				
 				if (canShoot())
@@ -387,13 +522,57 @@ package
 						accuracyOffset += KICK;
 					}
 					
+					var spread:Boolean = false;
+					for each (var someName in LIST_OF_SPREAD_WEAPONS)
+					{
+						if (currentWeapon.getName() == someName)
+						{
+							spread = true;
+						}
+					}
+					
+					if (spread)
+					{
+						//Add extra bullets
+						var b1:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						var b2:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * .2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						var b3:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -.2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						var b4:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * .6), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						var b5:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -.6), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						var bArr:Array = [b1, b2, b3, b4, b5];
+						for each (var tBullet in bArr)
+						{
+							gw.playerHolder.addChild(tBullet);
+							mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, tBullet.rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						}
+					}
 					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
 					gw.playerHolder.addChild(b);
-					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, b.rotation);
+					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
 				}
 			}
 			cl.unfocusMe();
+		}
+		
+		public function getPickupsNearMe()
+		{
+			var a:Array = new Array();
+			for each (var p in elementArray)
+			{
+				if (p[0] == "Pickup")
+				{
+					var xCalc:Number = (listOfPlayers[0].x - p[1].x) * (listOfPlayers[0].x - p[1].x);
+					var yCalc:Number = (listOfPlayers[0].y - p[1].y) * (listOfPlayers[0].y - p[1].y);
+					var dist:Number = Math.sqrt(xCalc + yCalc);
+					//trace("Distance from player: " + dist);
+					if (dist < PICKUP_RANGE)
+					{
+						a.push(p);
+					}
+				}
+			}
+			return a;
 		}
 		
 		public function anywhereGwDown(e:Event)
@@ -433,19 +612,22 @@ package
 		
 		public function canShoot()
 		{
-			if (reloading)
+			if (cursor.visible && !pickingUp)
 			{
-				return false;
-			}
-			if (CURRENT_CLIP_CONTAINS == 0)
-			{
-				return false;
-			}
-			else if (shootCD >= FIRE_RATE)
-			{
-				CURRENT_CLIP_CONTAINS--;
-				updatePlayerUI();
-				return true;
+				if (reloading)
+				{
+					return false;
+				}
+				if (CURRENT_CLIP_CONTAINS == 0)
+				{
+					return false;
+				}
+				else if (shootCD >= FIRE_RATE)
+				{
+					CURRENT_CLIP_CONTAINS--;
+					updatePlayerUI();
+					return true;
+				}
 			}
 		}
 		
@@ -534,6 +716,10 @@ package
 			{
 				reload();
 			}
+			else if (e.charCode == 32)
+			{
+				pickingUp = true;
+			}
 		}
 		
 		public function reload()
@@ -549,7 +735,9 @@ package
 				{
 					gwHUD.playerHUD.indic_Ammo.reloader.visible = false;
 					reloading = false;
-					CURRENT_CLIP_CONTAINS += ammo.takeAmmo(currentWeapon.getAmmoType(), (CLIP_SIZE - CURRENT_CLIP_CONTAINS));
+					var toTake:int = ammo.takeAmmo(currentWeapon.getAmmoType(), (CLIP_SIZE - CURRENT_CLIP_CONTAINS));
+					CURRENT_CLIP_CONTAINS += toTake;
+					inventory.remove(new InvItem("Ammo", currentWeapon.getAmmoType(), 0, 100, toTake));
 					
 					//Update the PlayerUI
 					updatePlayerUI();
@@ -561,6 +749,7 @@ package
 		public function updateHealthBar(n:Number)
 		{
 			gwHUD.playerHUD.indic_Health.myBar.update(n);
+			gwHUD.playerHUD.indic_Health.myText.text = n;
 		}
 		
 		public function setHealthTotal(n:Number)
@@ -585,6 +774,32 @@ package
 			record(currentWeapon.easyPrint());
 		}
 		
+		public function printInventory()
+		{
+			inventory.printItems();
+		}
+		
+		public function updateInventory()
+		{
+			switch (INVENTORY_CATEGORY)
+			{
+				case "Weapons": 
+					gwHUD.playerHUD.inventory.itemText.text = inventory.getItemsByCategory("Weapons")[0];
+					gwHUD.playerHUD.inventory.weightText.text = inventory.getItemsByCategory("Weapons")[1];
+					gwHUD.playerHUD.inventory.valueText.text = inventory.getItemsByCategory("Weapons")[2];
+					break;
+				case "Ammo": 
+					gwHUD.playerHUD.inventory.itemText.text = inventory.getItemsByCategory("Ammo")[0];
+					gwHUD.playerHUD.inventory.weightText.text = inventory.getItemsByCategory("Ammo")[1];
+					gwHUD.playerHUD.inventory.valueText.text = inventory.getItemsByCategory("Ammo")[2];
+					break;
+				case "Clothing": 
+					break;
+				case "Aid": 
+					break;
+			}
+		}
+		
 		public function keyUp(e:KeyboardEvent)
 		{
 			if (e.charCode == 119)
@@ -603,6 +818,10 @@ package
 			{
 				goingRight = false;
 			}
+			else if (e.charCode == 32)
+			{
+				pickingUp = false;
+			}
 		}
 		
 		public function getCamOffsets()
@@ -612,6 +831,14 @@ package
 		
 		public function everyFrame(e:Event)
 		{
+			if (pickingUp)
+			{
+				cursor.pickingOn();
+			}
+			else
+			{
+				cursor.pickingOff();
+			}
 			if (!cl.isFocused() && listOfPlayers[0].isAlive() && !iAmDisconnected)
 			{
 				moveMe();
@@ -624,7 +851,7 @@ package
 			cl.updateCurrentConnections(mp.getCurrentConnections());
 			
 			//Update Memory
-			gwHUD.myMemory.text = "MEMORY: " + int(System.totalMemory / 1024) + " KB";
+			//gwHUD.myMemory.text = "MEMORY: " + int(System.totalMemory / 1024) + " KB";
 			//Update FPS
 			frames += 1;
 			curTimer = getTimer();
@@ -642,7 +869,9 @@ package
 				//Update ReceivedCounter
 				var receivedObjs:int = curReceived - prevReceived;
 				//Update Counter
-				gwHUD.mySentAndReceived.text = "NETWORK: " + sentObjs + ", " + receivedObjs;
+				//gwHUD.mySentAndReceived.text = "NETWORK: " + sentObjs + ", " + receivedObjs;
+				gwHUD.mySentAndReceived.text = "";
+				gwHUD.myMemory.text = "";
 				
 				//Save stats for the next second
 				prevSent = int(mp.getSentObjectCounter());
@@ -652,7 +881,7 @@ package
 		
 		public function syncGW(x_In:Number, y_In:Number)
 		{
-			//Loop through Holders and snap them all to the X and Y coordinates
+			//Snap GW X and Y coordinates to new positions (actually just change them!)
 			gw.x -= x_In;
 			gw.y -= y_In;
 		}
@@ -770,6 +999,21 @@ package
 			return elementArray;
 		}
 		
+		public function removeElementByID(id:Number)
+		{
+			for (var i = 0; i < elementArray.length; i++)
+			{
+				if (elementArray[i][0] == "Pickup")
+				{
+					if (elementArray[i][1].getGID() == id)
+					{
+						elementArray[i][1].pickUp();
+						garbageCollectElementArray();
+					}
+				}
+			}
+		}
+		
 		public function createPlayer(player_In:Player)
 		{
 			listOfPlayers.push(player_In);
@@ -794,6 +1038,38 @@ package
 			cl.updateCurrentConnections(mp.getCurrentConnections());
 		}
 		
+		public function createPickupFromMe()
+		{
+			if (elementArray.length >= MAX_ELEMENTS) {
+				garbageCollectElementArray();
+			}
+			if (elementArray.length < MAX_ELEMENTS)
+			{
+				var startX:Number = listOfPlayers[0].x;
+				var startY:Number = listOfPlayers[0].y;
+				var startR:Number = (Math.floor(Math.random() * 180));
+				
+				//Eventually there will have to be different inputs for what's created, but for now this will do
+				var itemChoose:Number = (Math.floor(Math.random() * 3));
+				var item1:InvItem = new InvItem("Ammo", ".45 Auto", .5, 100, 20);
+				var item2:InvItem = new InvItem("Ammo", "12 Gauge Shell", .5, 100, 20);
+				var item3:InvItem = new InvItem("Ammo", ".357", .5, 100, 20);
+				var tArr:Array = [item1, item2, item3];
+				var itemIn:InvItem = tArr[itemChoose];
+				var tGID = (Math.floor(Math.random() * 999999999999999999));
+				
+				startX += (Math.cos(startR) * PLACE_DISTANCE);
+				startY += (Math.sin(startR) * PLACE_DISTANCE);
+				
+				createPickup(startX, startY, startR, itemIn, tGID);
+				mp.sendElement("Pickup", [startX, startY, startR, [itemIn.getCategory(), itemIn.getName(), itemIn.getWeight(), itemIn.getCondition(), itemIn.getQuantity()], tGID]);
+			}
+			else
+			{
+				record("There are too many elements (Max: " + MAX_ELEMENTS + ")");
+			}
+		}
+		
 		public function createZombieFromMe()
 		{
 			if (elementArray.length < MAX_ELEMENTS)
@@ -812,6 +1088,20 @@ package
 			{
 				record("There are too many elements (Max: " + MAX_ELEMENTS + ")");
 			}
+		}
+		
+		public function createPickup(x_In:Number, y_In:Number, r_In:Number, item_In:InvItem, GID_In:Number)
+		{
+			//Add a pickup to the stage
+			var p:Pickup = new Pickup(item_In);
+			p.setGID(GID_In);
+			p.x = x_In;
+			p.y = y_In;
+			p.rotation = r_In;
+			elementArray.push(["Pickup", p]);
+			gw.pickupHolder.addChild(p);
+			trace("Added Pickup: " + p.getGID());
+			return p;
 		}
 		
 		public function createZombie(x_In:Number, y_In:Number, r_In:Number, zHP_In:int)
@@ -847,6 +1137,15 @@ package
 			bulletHole.x = x_In;
 			bulletHole.y = y_In;
 			bulletHole.rotation = r_In;
+		}
+		
+		public function createBulletBlood(x_In:Number, y_In:Number, r_In:Number)
+		{
+			var bulletBlood:StaticAni = new StaticAni("BulletBlood");
+			gw.staticAniHolder.addChild(bulletBlood);
+			bulletBlood.x = x_In;
+			bulletBlood.y = y_In;
+			bulletBlood.rotation = r_In;
 		}
 		
 		public function getGWOffsets()

@@ -7,9 +7,7 @@ package
 	public class Bullet extends MovieClip
 	{
 		var MOVEMENT_SPEED:Number = 30;
-		var MAX_DISTANCE:Number = 200;
-		var MAX_HEIGHT:Number = 440;
-		var MAX_WIDTH:Number = 480;
+		var MAX_DISTANCE:Number = 1000;
 		var LETHAL_DISTANCE:Number = 1;
 		var PENETRATES:Boolean = false;
 		var DAMAGE:Number = 1;
@@ -64,6 +62,7 @@ package
 						if ((someE[0] == "Player" && someE[1].getID() != immuneToPlayer) || someE[0] == "Zombie")
 						{
 							someE[1].takeDamage(rotation, DAMAGE);
+							(parent.parent.parent as MovieClip).createBulletBlood(x, y, rotation + 180);
 							if (PENETRATES)
 							{
 								PENETRATES = false;
@@ -88,7 +87,7 @@ package
 			}
 			
 			//Remove after a certain distance or the Bullet exceeds constraints
-			if (MAX_DISTANCE <= 0 || x < 0 || y < 0 || x > MAX_WIDTH || y > MAX_HEIGHT)
+			if (MAX_DISTANCE <= 0)
 			{
 				removeMe();
 			}

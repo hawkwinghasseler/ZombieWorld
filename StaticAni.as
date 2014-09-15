@@ -8,7 +8,7 @@ package
 		//Initiate Constants
 		var RANDOMIZED_TYPES:Array = ["Blood"];
 		var STATIC_TYPES:Array = ["Blood"];
-		var REMOVE_AFTER_ANI:Array = ["MuzzleFlash", "BulletHole"];
+		var REMOVE_AFTER_ANI:Array = ["MuzzleFlash", "BulletHole", "BulletBlood"];
 		
 		public function StaticAni(type:String)
 		{

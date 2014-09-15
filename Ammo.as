@@ -5,7 +5,7 @@ package
 	public class Ammo extends MovieClip
 	{
 		var names:Array = [".45 Auto", "12 Gauge Shell", ".357"];
-		var amounts:Array = [100, 100, 100];
+		var amounts:Array = [0, 0, 0];
 		
 		public function Ammo()
 		{
@@ -13,11 +13,13 @@ package
 		
 		public function addAmmo(n:Number, s:String)
 		{
+			//trace("@Ammo Adding " + n + " " + s);
 			amounts[names.indexOf(s)] += n;
 		}
 		
-		public function takeAmmo(s:String, n:Number)
+		public function takeAmmo(s:String, n:int)
 		{
+			//trace("@Ammo Taking " + n + " " + s);
 			if (amounts[names.indexOf(s)] >= n)
 			{
 				amounts[names.indexOf(s)] -= n;

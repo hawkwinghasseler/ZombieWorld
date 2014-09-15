@@ -15,7 +15,7 @@ package
 		var isDisconnected:Boolean = false;
 		var bloodStep:int = 0;
 		var hitSize:int = 12;
-		var maxHealth:int = 10;
+		var maxHealth:int = 100;
 		
 		public function Player(myID_In:String, myName_In:String)
 		{
@@ -57,9 +57,10 @@ package
 			myHealth -= damage_In;
 			if ((parent.parent.parent as MovieClip).isPlayerID(myID))
 			{
+				//record("Taking damage! (-" + damage_In + ")");
 				(parent.parent.parent as MovieClip).updateHealthBar(myHealth);
+				checkForDeath();
 			}
-			checkForDeath();
 		}
 		
 		public function setName(s:String)

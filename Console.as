@@ -86,6 +86,9 @@
 					case "/add-zombie": 
 						(parent as MovieClip).createZombieFromMe();
 						break;
+					case "/add-pickup":
+						(parent as MovieClip).createPickupFromMe();
+						break;
 					case "/toggle-autofire": 
 						(parent as MovieClip).toggleAutoFire();
 						break;
@@ -130,8 +133,11 @@
 							record("Your name can't include spaces.");
 						}
 						break;
+					case "/print-inventory":
+						(parent as MovieClip).printInventory();
+						break;
 					default: 
-						record("<font color='#CC0000'>" + s + " is not a recognized command. Type HELP for a list of commands.</font>");
+						record("<font color='#CC0000'>" + s + " is not a recognized command. Type /help for a list of commands.</font>");
 						break;
 				}
 			}
@@ -154,6 +160,9 @@
 			myHistory.scrollV = myHistory.maxScrollV;
 			scroller.update();
 			trace(s);
+			
+			//Update chat log
+			(parent as MovieClip).chatlogRecord(s);
 		}
 	}
 }

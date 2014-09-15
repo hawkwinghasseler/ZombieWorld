@@ -169,8 +169,8 @@ package
 		
 		public function removeMe()
 		{
-			removeEventListener(Event.ENTER_FRAME, everyFrame);
 			(parent.parent.parent as MovieClip).garbageCollectElementArray();
+			removeEventListener(Event.ENTER_FRAME, everyFrame);
 			(parent as MovieClip).removeChild(this);
 		}
 		
