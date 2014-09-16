@@ -11,9 +11,10 @@ package
 		var clipSize:Array = [7, 25, 6, 9];
 		var fireRate:Array = [15, 10, 70, 40];
 		var autoFire:Array = [false, true, false, false];
-		var penetrationChance:Array = [0, 0, 0, 80];
+		var penetrationChance:Array = [0, 0, 0, 10];
 		var reloadTime:Array = [10, 30, 50, 10];
 		var damage:Array = [4, 4, 3, 15];
+		var knockChance:Array = [5, 5, 50, 60];
 		
 		//Pick a starting weapon
 		var currentWeapon:String = names[0];
@@ -69,6 +70,11 @@ package
 		public function getPenetrationChance()
 		{
 			return penetrationChance[names.indexOf(currentWeapon)];
+		}
+		
+		public function getKnockChance()
+		{
+			return knockChance[names.indexOf(currentWeapon)];
 		}
 		
 		public function getReloadTime()

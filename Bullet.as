@@ -11,16 +11,18 @@ package
 		var LETHAL_DISTANCE:Number = 1;
 		var PENETRATES:Boolean = false;
 		var DAMAGE:Number = 1;
+		var KNOCK:Number = 0;
 		
 		var immuneToPlayer:String;
 		
-		public function Bullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, PENETRATES_In:Boolean, DAMAGE_In:Number)
+		public function Bullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, PENETRATES_In:Boolean, DAMAGE_In:Number, KNOCK_In:Number)
 		{
 			x = x_In;
 			y = y_In;
 			rotation = r_In;
 			PENETRATES = PENETRATES_In;
 			DAMAGE = DAMAGE_In;
+			KNOCK = KNOCK_In;
 			
 			immuneToPlayer = immune_In;
 			
@@ -61,7 +63,7 @@ package
 					{
 						if ((someE[0] == "Player" && someE[1].getID() != immuneToPlayer) || someE[0] == "Zombie")
 						{
-							someE[1].takeDamage(rotation, DAMAGE);
+							someE[1].takeDamage(rotation, DAMAGE, KNOCK);
 							(parent.parent.parent as MovieClip).createBulletBlood(x, y, rotation + 180);
 							if (PENETRATES)
 							{

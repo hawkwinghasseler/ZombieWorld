@@ -95,9 +95,9 @@ package
 			mConnection.sendObject({c: "ChangePosition", x: x_In, y: y_In, r: r_In});
 		}
 		
-		public function sendBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, penetrates:Boolean, bulletDamage:Number)
+		public function sendBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, penetrates:Boolean, bulletDamage:Number, knock_In:Number)
 		{
-			mConnection.sendObject({c: "Bullet", x: x_In, y: y_In, r: r_In, immune: immune_In, pen: penetrates, dmg: bulletDamage});
+			mConnection.sendObject({c: "Bullet", x: x_In, y: y_In, r: r_In, immune: immune_In, pen: penetrates, dmg: bulletDamage, kno: knock_In});
 		}
 		
 		public function sendNameChange(s:String)
@@ -131,9 +131,10 @@ package
 			}
 		}
 		
-		public function sendRemoveElement(id:Number) {
+		public function sendRemoveElement(id:Number)
+		{
 			//record("Sending Removal request for " + id);
-			mConnection.sendObject({c: "RemoveElement", i:id});
+			mConnection.sendObject({c: "RemoveElement", i: id});
 		}
 		
 		public function handleConnect(theUser:UserObject):void
@@ -198,7 +199,7 @@ package
 					changePlayerPosition(theUserId, theData.x, theData.y, theData.r);
 					break;
 				case "Bullet": 
-					(parent as MovieClip).createBullet(theData.x, theData.y, theData.r, theData.immune, theData.pen, theData.dmg);
+					(parent as MovieClip).createBullet(theData.x, theData.y, theData.r, theData.immune, theData.pen, theData.dmg, theData.kno);
 					break;
 				case "NameChange": 
 					//record("Received a name change " + theData.n);
@@ -262,7 +263,7 @@ package
 						record("Received an unrecognized object: " + theData.w);
 					}
 					break;
-				case "RemoveElement":
+				case "RemoveElement": 
 					//record("Removing " + theData.i);
 					(parent as MovieClip).removeElementByID(theData.i);
 					break;

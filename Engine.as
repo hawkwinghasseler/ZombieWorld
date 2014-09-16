@@ -24,10 +24,10 @@ package
 		var ZOMBIE_HEALTH:Number = 10;
 		var MAX_ELEMENTS:Number = 50;
 		var PENETRATE_CHANCE:Number = 0;
+		var KNOCK_CHANCE:Number = 0;
 		var AUTO_FIRE:Boolean = true;
 		var ACCURACY:Number = 5;
-		
-		
+		var KNOCK_DISTANCE:Number = 12;
 		var ACCURACY_CHANGE_RUN:Number = .5;
 		var ACCURACY_CHANGE_STOP:Number = .75;
 		var ACCURACY_OFFSET_MAX:Number = 30;
@@ -40,6 +40,8 @@ package
 		var INVENTORY_CATEGORY:String = "Weapons";
 		var PICKUP_RANGE:Number = 50;
 		var LIST_OF_SPREAD_WEAPONS:Array = ["Shotgun"];
+		var torch_power:int = 500;
+		var torch_step:int = 100;
 		
 		//Class specific variables
 		var mp:Multiplayer = new Multiplayer();
@@ -64,6 +66,9 @@ package
 		var reloading:Boolean = false;
 		var inventory:Inventory = new Inventory();
 		var pickingUp:Boolean = false;
+		var light:Sprite = new Sprite();
+		var torch_angle:int = 100;
+		var torch_angle_step:int = 90;
 		
 		//Directional booleanss
 		var goingDown = false;
@@ -85,6 +90,7 @@ package
 			addChild(gw);
 			addChild(gwHUD);
 			addChild(inventory);
+			gw.lightHolder.addChild(light);
 			gwHUD.addChild(cursor);
 			cursor.mouseEnabled = false;
 			cursor.mouseChildren = false;
@@ -186,12 +192,26 @@ package
 		
 		public function btnInvClick(e:Event)
 		{
-			showInventory();
+			if (gwHUD.playerHUD.inventory.visible)
+			{
+				hideInventory();
+			}
+			else
+			{
+				showInventory();
+			}
 		}
 		
 		public function btnChatClick(e:Event)
 		{
-			showChat();
+			if (gwHUD.playerHUD.chat.visible)
+			{
+				hideChat();
+			}
+			else
+			{
+				showChat();
+			}
 		}
 		
 		public function btnInvClose(e:Event)
@@ -215,9 +235,7 @@ package
 			listOfPlayers[0].x = gw.mapVisualTop.spawn.x;
 			listOfPlayers[0].y = gw.mapVisualTop.spawn.y;
 			
-			//Snap GW to Character's X and Y
-			gw.x = gwHUD.x - (listOfPlayers[0].x - (gwHUD.width / 2)) - 25;
-			gw.y = gwHUD.y - (listOfPlayers[0].y - (gwHUD.height / 2)) - 150;
+			syncGW();
 		}
 		
 		public function showInventory()
@@ -274,11 +292,12 @@ package
 			AUTO_FIRE = currentWeapon.getAutoFire();
 			KICK = currentWeapon.getKick();
 			PENETRATE_CHANCE = currentWeapon.getPenetrationChance();
+			KNOCK_CHANCE = currentWeapon.getKnockChance();
 			RELOAD_SPEED = currentWeapon.getReloadTime();
 			reloadTimer = new Timer(100, RELOAD_SPEED);
 			BULLET_DAMAGE = currentWeapon.getDamage();
 			
-			printWeapon();
+			//printWeapon();
 			updatePlayerUI();
 			reload();
 		}
@@ -515,7 +534,12 @@ package
 				{
 					shootCD = 0;
 					var penetrates:Boolean = PENETRATE_CHANCE >= (Math.floor(Math.random() * 100));
+					var knock:Number = 0;
 					var tAccuracy:Number = (Math.floor(Math.random() * (ACCURACY + accuracyOffset)) - ((ACCURACY + accuracyOffset) / 2));
+					if (KNOCK_CHANCE >= (Math.floor(Math.random() * 100)))
+					{
+						knock = KNOCK_DISTANCE;
+					}
 					
 					if (accuracyOffset < ACCURACY_OFFSET_MAX)
 					{
@@ -534,20 +558,20 @@ package
 					if (spread)
 					{
 						//Add extra bullets
-						var b1:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-						var b2:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * .2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-						var b3:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -.2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-						var b4:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * .6), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-						var b5:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -.6), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+						var b1:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
+						var b2:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * .2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
+						var b3:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -.2), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
+						var b4:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * .6), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
+						var b5:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + (tAccuracy * -.6), listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
 						var bArr:Array = [b1, b2, b3, b4, b5];
 						for each (var tBullet in bArr)
 						{
 							gw.playerHolder.addChild(tBullet);
-							mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, tBullet.rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+							mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, tBullet.rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
 						}
 					}
-					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+					var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
+					mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
 					gw.playerHolder.addChild(b);
 					createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
 				}
@@ -591,15 +615,20 @@ package
 			{
 				shootCD = 0;
 				var penetrates:Boolean = PENETRATE_CHANCE >= (Math.floor(Math.random() * 100));
+				var knock:Number = 0;
 				var tAccuracy:Number = (Math.floor(Math.random() * (ACCURACY + accuracyOffset)) - ((ACCURACY + accuracyOffset) / 2));
+				if (KNOCK_CHANCE >= (Math.floor(Math.random() * 100)))
+				{
+					knock = 5;
+				}
 				
 				if (accuracyOffset < ACCURACY_OFFSET_MAX)
 				{
 					accuracyOffset += KICK;
 				}
 				
-				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
-				mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE);
+				var b:Bullet = new Bullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation + tAccuracy, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
+				mp.sendBullet(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation, listOfPlayers[0].getID(), penetrates, BULLET_DAMAGE, knock);
 				gw.playerHolder.addChild(b);
 				createMuzzleFlash(listOfPlayers[0].x, listOfPlayers[0].y, b.rotation);
 			}
@@ -879,11 +908,17 @@ package
 			}
 		}
 		
-		public function syncGW(x_In:Number, y_In:Number)
+		/*public function syncGW(x_In:Number, y_In:Number)
+		   {
+		   //Snap GW X and Y coordinates to new positions (actually just change them!)
+		   gw.x -= x_In;
+		   gw.y -= y_In;
+		 }*/
+		
+		public function syncGW()
 		{
-			//Snap GW X and Y coordinates to new positions (actually just change them!)
-			gw.x -= x_In;
-			gw.y -= y_In;
+			gw.x = int(gwHUD.x - (listOfPlayers[0].x - (gwHUD.fSheet.width / 2)));
+			gw.y = int(gwHUD.y - (listOfPlayers[0].y - (gwHUD.fSheet.height / 2)));
 		}
 		
 		public function getMap()
@@ -898,69 +933,45 @@ package
 			
 			if (goingUp)
 			{
-				speedY -= MOVEMENT_SPEED;
+				listOfPlayers[0].y -= MOVEMENT_SPEED;
+				speedY = MOVEMENT_SPEED;
 			}
 			if (goingLeft)
 			{
-				speedX -= MOVEMENT_SPEED;
+				listOfPlayers[0].x -= MOVEMENT_SPEED;
+				speedX = -MOVEMENT_SPEED;
 			}
 			if (goingDown)
 			{
-				speedY += MOVEMENT_SPEED;
+				listOfPlayers[0].y += MOVEMENT_SPEED;
+				speedY = -MOVEMENT_SPEED;
 			}
 			if (goingRight)
 			{
-				speedX += MOVEMENT_SPEED;
+				listOfPlayers[0].x += MOVEMENT_SPEED;
+				speedX = MOVEMENT_SPEED;
 			}
 			
-			var xHitSpace:Number = listOfPlayers[0].getHitSize();
-			var yHitSpace:Number = listOfPlayers[0].getHitSize();
-			var goingX:Boolean = false;
-			var goingY:Boolean = false;
+			var radius:Number = listOfPlayers[0].getHitSize();
 			
-			if (speedX < 0)
+			while (map.hitTestPoint(listOfPlayers[0].x + gw.x, listOfPlayers[0].y + gw.y + radius, true))
 			{
-				xHitSpace *= -1;
+				listOfPlayers[0].y--;
 			}
-			if (speedY < 0)
+			while (map.hitTestPoint(listOfPlayers[0].x + gw.x, listOfPlayers[0].y + gw.y - radius, true))
 			{
-				yHitSpace *= -1;
+				listOfPlayers[0].y++;
 			}
-			
-			//xHitSpace += getCamOffsets()[0];
-			//yHitSpace += getCamOffsets()[1];
-			xHitSpace += holderArray[0].x;
-			yHitSpace += holderArray[0].y;
-			
-			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x + xHitSpace + speedX, listOfPlayers[0].y + gw.y - yHitSpace, true))
+			while (map.hitTestPoint(listOfPlayers[0].x + gw.x - radius, listOfPlayers[0].y + gw.y, true))
 			{
-				goingX = true;
+				listOfPlayers[0].x++;
+			}
+			while (map.hitTestPoint(listOfPlayers[0].x + gw.x + radius, listOfPlayers[0].y + gw.y, true))
+			{
+				listOfPlayers[0].x--;
 			}
 			
-			if (!map.hitTestPoint(listOfPlayers[0].x + gw.x - xHitSpace, listOfPlayers[0].y + gw.y + yHitSpace + speedY, true))
-			{
-				goingY = true;
-			}
-			
-			if (goingX && goingY)
-			{
-				if (!map.hitTestPoint(listOfPlayers[0].x + gw.x + xHitSpace + speedX, listOfPlayers[0].y + gw.y + yHitSpace + speedY, true))
-				{
-					listOfPlayers[0].x += speedX;
-					listOfPlayers[0].y += speedY;
-					syncGW(speedX, speedY);
-				}
-			}
-			else if (goingX)
-			{
-				listOfPlayers[0].x += speedX;
-				syncGW(speedX, 0);
-			}
-			else if (goingY)
-			{
-				listOfPlayers[0].y += speedY;
-				syncGW(0, speedY);
-			}
+			syncGW();
 			
 			//Change the accuracy modifier if moving
 			if (speedX != 0 || speedY != 0)
@@ -981,6 +992,25 @@ package
 					accuracyOffset = 0;
 				}
 			}
+			
+			//Flashlight
+			light.graphics.clear();
+			light.graphics.beginFill(0xffffff, 100);
+			light.graphics.moveTo(listOfPlayers[0].x, listOfPlayers[0].y);
+			for (var i:int = 0; i <= torch_angle; i += (torch_angle / torch_angle_step))
+			{
+				var ray_angle = to_radians(((listOfPlayers[0].rotation) - 90 - (torch_angle / 2) + i));
+				for (var j:int = 1; j <= torch_step; j++)
+				{
+					if (map.hitTestPoint((listOfPlayers[0].x + (torch_power / torch_step * j) * Math.cos(ray_angle)) + gw.x, (listOfPlayers[0].y + (torch_power / torch_step * j) * Math.sin(ray_angle)) + gw.y, true))
+					{
+						break;
+					}
+				}
+				light.graphics.lineTo(listOfPlayers[0].x + (torch_power / torch_step * j) * Math.cos(ray_angle), listOfPlayers[0].y + (torch_power / torch_step * j) * Math.sin(ray_angle));
+			}
+			light.graphics.lineTo(listOfPlayers[0].x, listOfPlayers[0].y);
+			light.graphics.endFill();
 			
 			mp.sendCharacterInfo(listOfPlayers[0].x, listOfPlayers[0].y, listOfPlayers[0].rotation);
 		}
@@ -1040,7 +1070,8 @@ package
 		
 		public function createPickupFromMe()
 		{
-			if (elementArray.length >= MAX_ELEMENTS) {
+			if (elementArray.length >= MAX_ELEMENTS)
+			{
 				garbageCollectElementArray();
 			}
 			if (elementArray.length < MAX_ELEMENTS)
@@ -1113,10 +1144,10 @@ package
 			z.checkForDeath();
 		}
 		
-		public function createBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, pen_In:Boolean, damage_In:Number)
+		public function createBullet(x_In:Number, y_In:Number, r_In:Number, immune_In:String, pen_In:Boolean, damage_In:Number, knock_In:Number)
 		{
 			//Shoot
-			var b:Bullet = new Bullet(x_In, y_In, r_In, immune_In, pen_In, damage_In);
+			var b:Bullet = new Bullet(x_In, y_In, r_In, immune_In, pen_In, damage_In, knock_In);
 			gw.playerHolder.addChild(b);
 			createMuzzleFlash(x_In, y_In, r_In);
 		}
@@ -1156,6 +1187,16 @@ package
 		public function getName()
 		{
 			return mp.getName();
+		}
+		
+		public function to_radians(n:Number)
+		{
+			return (n * 0.0174532925);
+		}
+		
+		public function to_degrees(n:Number)
+		{
+			return (n * 57.2957795);
 		}
 		
 		public function sendStr(s:String)

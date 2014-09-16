@@ -23,7 +23,7 @@ package
 			rotation = r_In;
 			health = h_In;
 			
-			this.addEventListener(Event.ENTER_FRAME, everyFrame);
+			addEventListener(Event.ENTER_FRAME, everyFrame);
 			gotoAndStop("Alive");
 		}
 		
@@ -39,10 +39,6 @@ package
 				{
 					moveMe();
 				}
-			}
-			else
-			{
-				sensor.visible = false;
 			}
 		}
 		
@@ -90,11 +86,14 @@ package
 			}
 		}
 		
-		public function takeDamage(impact_Angle_In:Number, damage_In:Number)
+		public function takeDamage(impact_Angle_In:Number, damage_In:Number, knock_In:Number)
 		{
 			impact_Angle = impact_Angle_In;
 			health -= damage_In;
 			checkForDeath();
+			var radians = (impact_Angle - 90) / (180 / Math.PI);
+			x += (Math.cos(radians) * knock_In);
+			y += (Math.sin(radians) * knock_In);
 		}
 		
 		public function checkForDeath()
@@ -115,7 +114,6 @@ package
 			(parent.parent.parent as MovieClip).addStaticAni(x, y, impact_Angle, "Blood");
 			dead = true;
 			gotoAndStop("Dead");
-			sensor.visible = false;
 			removeMe();
 		}
 		
@@ -169,8 +167,9 @@ package
 		
 		public function removeMe()
 		{
-			(parent.parent.parent as MovieClip).garbageCollectElementArray();
+			trace("REMOVING A ZOMBIE");
 			removeEventListener(Event.ENTER_FRAME, everyFrame);
+			(parent.parent.parent as MovieClip).garbageCollectElementArray();
 			(parent as MovieClip).removeChild(this);
 		}
 		

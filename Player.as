@@ -52,11 +52,16 @@ package
 			pHUI.say(s);
 		}
 		
-		public function takeDamage(impact_Angle:Number, damage_In:Number)
+		public function takeDamage(impact_Angle:Number, damage_In:Number, knock_In:Number)
 		{
-			myHealth -= damage_In;
 			if ((parent.parent.parent as MovieClip).isPlayerID(myID))
 			{
+				//Knockback
+				var radians = (impact_Angle - 90) / (180 / Math.PI);
+				//x += (Math.cos(radians) * knock_In);
+				//y += (Math.sin(radians) * knock_In);
+				
+				myHealth -= damage_In;
 				//record("Taking damage! (-" + damage_In + ")");
 				(parent.parent.parent as MovieClip).updateHealthBar(myHealth);
 				checkForDeath();
